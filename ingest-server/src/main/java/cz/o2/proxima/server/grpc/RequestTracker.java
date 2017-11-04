@@ -13,16 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package cz.o2.proxima.server.grpc;
 
-package cz.o2.proxima.server;
+import java.util.concurrent.CompletableFuture;
 
-/**
- * Various (mostly config related) constants.
- */
-public class Constants {
+interface RequestTracker {
 
-  public static final String CFG_IGNORE_ERRORS = "ingest.ignore-errors";
-  public static final String CFG_PORT = "ingest.server.port";
-  public static final int DEFALT_PORT = 4001;
+  void increment(int num);
+
+  default void increment() {
+    increment(1);
+  }
+
+  void decrement(int num);
+
+  default void decrement() {
+    decrement(1);
+  }
+
+  CompletableFuture<Void> complete();
 
 }

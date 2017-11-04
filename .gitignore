@@ -22,4 +22,4 @@ pom.xml.versionsBackup
 /smartbox/performance-test/target/
 *.iml
 .idea
-server/log
+ingest-server/log

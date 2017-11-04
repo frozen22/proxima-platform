@@ -46,7 +46,7 @@
   <properties>
     <kafka.version>0.11.0.1</kafka.version>
     <proto.version>3.0.2</proto.version>
-    <grpc.version>1.0.3</grpc.version>
+    <grpc.version>1.7.0</grpc.version>
     <euphoria.version>0.7.0</euphoria.version>
     <license-maven-plugin.version>3.0</license-maven-plugin.version>
     <docker.registry>dev.proxima.o2.cz:5000</docker.registry>
@@ -282,7 +282,8 @@
     <module>kafka</module>
     <module>maven</module>
     <module>rpc</module>
-    <module>server</module>
+    <module>ingest-server</module>
+    <module>replica-server</module>
     <module>tools</module>
     <module>example</module>
   </modules>
