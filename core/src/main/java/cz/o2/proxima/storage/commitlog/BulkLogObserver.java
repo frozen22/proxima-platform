@@ -83,7 +83,7 @@ public interface BulkLogObserver extends LogObserverBase {
    * processed so far will be committed.
    * @return {@code true} if the processing should continue, {@code false} otherwise
    **/
-  default boolean onNext(StreamElement ingest, OffsetCommitter committer) {
+  default boolean onNext(StreamElement<?> ingest, OffsetCommitter committer) {
     throw new UnsupportedOperationException(
         "Please override either of `onNext` methods");
   }

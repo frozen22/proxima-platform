@@ -40,7 +40,8 @@ public class KafkaStreamElement<T> extends StreamElement<T> {
       byte[] value,
       int partition,
       long offset) {
-    super(entityDesc, attributeDesc, uuid, key, stamp, attribute, value);
+    
+    super(entityDesc, attributeDesc, uuid, key, attribute, stamp, value);
     this.partition = partition;
     this.offset = offset;
   }
