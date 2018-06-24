@@ -112,7 +112,7 @@ public class StreamElement<T> implements Serializable {
      * @param value value of stream element
      * @return stream element
      */
-    StreamElement<T> update(byte[] value);
+    StreamElement<T> updateRaw(byte[] value);
 
     /**
      * Build stream element, which deletes value.
@@ -181,7 +181,7 @@ public class StreamElement<T> implements Serializable {
     }
 
     @Override
-    public StreamElement<T> update(byte[] value) {
+    public StreamElement<T> updateRaw(byte[] value) {
       return new StreamElement<>(
           entityDescriptor, attributeDescriptor, uuid, key, timestamp, attribute, value);
     }
