@@ -23,7 +23,7 @@ import lombok.Getter;
 /**
  * Data read from a kafka partition.
  */
-public class KafkaStreamElement extends StreamElement {
+public class KafkaStreamElement<T> extends StreamElement<T> {
 
   @Getter
   private final int partition;
@@ -32,11 +32,15 @@ public class KafkaStreamElement extends StreamElement {
 
   KafkaStreamElement(
       EntityDescriptor entityDesc,
-      AttributeDescriptor attributeDesc,
-      String uuid, String key, String attribute,
-      long stamp, byte[] value, int partition, long offset) {
-
-    super(entityDesc, attributeDesc, uuid, key, attribute, stamp, value);
+      AttributeDescriptor<T> attributeDesc,
+      String uuid,
+      String key,
+      String attribute,
+      long stamp,
+      byte[] value,
+      int partition,
+      long offset) {
+    super(entityDesc, attributeDesc, uuid, key, stamp, attribute, value);
     this.partition = partition;
     this.offset = offset;
   }

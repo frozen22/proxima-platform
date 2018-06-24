@@ -15,7 +15,8 @@
  */
 package cz.o2.proxima.tools.groovy;
 
-import cz.o2.proxima.tools.io.TypedStreamElement;
+import cz.o2.proxima.storage.StreamElement;
+import cz.o2.proxima.util.Optionals;
 import cz.seznam.euphoria.core.client.dataset.Dataset;
 import cz.seznam.euphoria.core.client.dataset.windowing.Window;
 import cz.seznam.euphoria.core.client.dataset.windowing.WindowedElement;
@@ -37,6 +38,7 @@ import cz.seznam.euphoria.core.client.util.Sums;
 import cz.seznam.euphoria.core.executor.Executor;
 import groovy.lang.Closure;
 import java.time.Duration;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -266,17 +268,15 @@ public class WindowedStream<T, W extends Windowing> extends Stream<T> {
   }
 
   @SuppressWarnings("unchecked")
-  public <T> WindowedStream<TypedStreamElement<T>, W> reduceToLatest() {
+  public WindowedStream<StreamElement<T>, W> reduceToLatest() {
     return descendant(() -> {
-      Dataset<TypedStreamElement<T>> input = (Dataset<TypedStreamElement<T>>) dataset.build();
+      Dataset<StreamElement<T>> input = (Dataset<StreamElement<T>>) dataset.build();
       return ReduceByKey.of(input)
           .keyBy(i -> Pair.of(i.getKey(), i.getAttribute()))
           .combineBy(values ->
-              StreamSupport.stream(values.spliterator(), false)
-                  .collect(Collectors.maxBy((a, b) -> {
-                    return Long.compare(a.getStamp(), b.getStamp());
-                  }))
-                  .get())
+              Optionals.get(
+                  StreamSupport.stream(values.spliterator(), false)
+                      .max(Comparator.comparingLong(StreamElement::getStamp))))
           .outputValues();
     });
   }
