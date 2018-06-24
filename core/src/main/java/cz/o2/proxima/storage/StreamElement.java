@@ -325,7 +325,6 @@ public class StreamElement<T> implements Serializable {
 
   /**
    * Retrieve parsed value.
-   * @param <T> the deserialized datatype
    * @return optional deserialized value
    */
   @SuppressWarnings("unchecked")
