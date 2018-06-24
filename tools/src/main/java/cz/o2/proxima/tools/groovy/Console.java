@@ -37,7 +37,6 @@ import cz.o2.proxima.source.BatchSource;
 import cz.o2.proxima.source.BoundedStreamSource;
 import cz.o2.proxima.tools.io.ConsoleRandomReader;
 import cz.o2.proxima.source.UnboundedStreamSource;
-import cz.o2.proxima.tools.io.TypedStreamElement;
 import cz.o2.proxima.util.Classpath;
 import cz.seznam.euphoria.core.client.dataset.Dataset;
 import cz.seznam.euphoria.core.client.dataset.windowing.GlobalWindowing;
@@ -47,7 +46,6 @@ import cz.seznam.euphoria.core.client.io.DataSource;
 import cz.seznam.euphoria.core.client.operator.AssignEventTime;
 import cz.seznam.euphoria.core.client.operator.Filter;
 import cz.seznam.euphoria.core.client.operator.FlatMap;
-import cz.seznam.euphoria.core.client.operator.MapElements;
 import cz.seznam.euphoria.core.client.operator.ReduceByKey;
 import cz.seznam.euphoria.core.client.util.Pair;
 import cz.seznam.euphoria.executor.local.LocalExecutor;
@@ -158,7 +156,7 @@ public class Console {
 
 
   @SuppressWarnings("unchecked")
-  public <T> Stream<TypedStreamElement<?>> getStream(
+  public <T> Stream<StreamElement<?>> getStream(
       EntityDescriptor entityDesc,
       AttributeDescriptor<T> attrDesc,
       Position position,
@@ -170,7 +168,7 @@ public class Console {
 
 
   @SuppressWarnings("unchecked")
-  public <T> Stream<TypedStreamElement<?>> getStream(
+  public <T> Stream<StreamElement<?>> getStream(
       EntityDescriptor entityDesc,
       AttributeDescriptor<T> attrDesc,
       Position position,
@@ -185,7 +183,7 @@ public class Console {
         .orElseThrow(() -> new IllegalArgumentException(
             "Attribute " + attrDesc + " has no commit log"));
 
-    final DatasetBuilder<TypedStreamElement<Object>> builder;
+    final DatasetBuilder<StreamElement<Object>> builder;
     builder = () -> {
       final DataSource source;
       if (stopAtCurrent) {
@@ -194,7 +192,7 @@ public class Console {
         source = UnboundedStreamSource.of(reader, position);
       }
 
-      Dataset<StreamElement> input = flow.get().createInput(source);
+      Dataset<StreamElement<Object>> input = flow.get().createInput(source);
 
       String prefix = attrDesc.toAttributePrefix();
       if (eventTime) {
@@ -202,26 +200,22 @@ public class Console {
             .using(StreamElement::getStamp)
             .output();
       }
-      Dataset<StreamElement> filtered = Filter.of(input)
+      return Filter.of(input)
           .by(t -> t.getAttributeDescriptor().toAttributePrefix().equals(prefix))
-          .output();
-      return MapElements.of(filtered)
-          .using(TypedStreamElement::of)
           .output();
     };
     return Stream.wrap(
         new LocalExecutor()
-            .setTriggeringSchedulerSupplier(() -> {
-              return eventTime
+            .setTriggeringSchedulerSupplier(() ->
+              eventTime
                   ? new WatermarkTriggerScheduler(500)
-                  : new ProcessingTimeTriggerScheduler();
-            })
-            .setWatermarkEmitStrategySupplier(() -> new WatermarkEmitStrategy.Default()),
+                  : new ProcessingTimeTriggerScheduler())
+            .setWatermarkEmitStrategySupplier(WatermarkEmitStrategy.Default::new),
         (DatasetBuilder) builder,
         this::resetFlow);
   }
 
-  public <T> WindowedStream<TypedStreamElement<T>, GlobalWindowing> getBatchSnapshot(
+  public <T> WindowedStream<StreamElement<T>, GlobalWindowing> getBatchSnapshot(
       EntityDescriptor entityDesc,
       AttributeDescriptor<T> attrDesc) {
 
@@ -230,7 +224,7 @@ public class Console {
 
 
   @SuppressWarnings("unchecked")
-  public <T> WindowedStream<TypedStreamElement<T>, GlobalWindowing> getBatchSnapshot(
+  public <T> WindowedStream<StreamElement<T>, GlobalWindowing> getBatchSnapshot(
       EntityDescriptor entityDesc,
       AttributeDescriptor<T> attrDesc,
       long fromStamp,

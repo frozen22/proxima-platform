@@ -23,15 +23,13 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Plain java object serializer. Please not it is not intended for production use.
  */
+@Slf4j
 public class JavaValueSerializerFactory implements ValueSerializerFactory {
-
-  private static final Logger LOG = LoggerFactory.getLogger(JavaValueSerializerFactory.class);
 
   @Override
   public String getAcceptableScheme() {
@@ -61,7 +59,7 @@ public class JavaValueSerializerFactory implements ValueSerializerFactory {
         try (final ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(input))) {
           return Optional.of((T) ois.readObject());
         } catch (IOException | ClassNotFoundException e) {
-          LOG.warn("Unable to deserialize value of '" + uri + "'.");
+          log.warn("Unable to deserialize value of '" + uri + "'.");
           return Optional.empty();
         }
       }
