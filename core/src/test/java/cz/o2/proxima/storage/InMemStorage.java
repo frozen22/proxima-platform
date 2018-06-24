@@ -63,12 +63,12 @@ import lombok.extern.slf4j.Slf4j;
 public class InMemStorage extends StorageDescriptor {
 
   @FunctionalInterface
-  private interface InMemIngestWriter extends Serializable {
-    void write(StreamElement data);
+  private interface InMemIngestWriter<T> extends Serializable {
+    void write(StreamElement<T> data);
   }
 
-  public static final class Writer
-      extends AbstractOnlineAttributeWriter {
+  public static final class Writer<T>
+      extends AbstractOnlineAttributeWriter<T> {
 
     private final NavigableMap<String, Pair<Long, byte[]>> data;
     private final Map<Integer, InMemIngestWriter> observers;
@@ -85,7 +85,7 @@ public class InMemStorage extends StorageDescriptor {
 
 
     @Override
-    public void write(StreamElement data, CommitCallback statusCallback) {
+    public void write(StreamElement<T> data, CommitCallback statusCallback) {
       log.debug("Writing element {} to {}", data, getURI());
       if (data.isDeleteWildcard()) {
         String prefix = getURI().getPath() + "/" + data.getKey()
@@ -145,10 +145,10 @@ public class InMemStorage extends StorageDescriptor {
     }
 
     @Override
-    public ObserveHandle observe(
+    public <T> ObserveHandle observe(
         String name,
         Position position,
-        LogObserver observer) {
+        LogObserver<T> observer) {
 
       if (position != Position.NEWEST) {
         throw new UnsupportedOperationException(
@@ -197,12 +197,12 @@ public class InMemStorage extends StorageDescriptor {
     }
 
     @Override
-    public ObserveHandle observePartitions(
+    public <T> ObserveHandle observePartitions(
         String name,
         Collection<Partition> partitions,
         Position position,
         boolean stopAtCurrent,
-        LogObserver observer) {
+        LogObserver<T> observer) {
 
       if (stopAtCurrent) {
         throw new UnsupportedOperationException("Cannot stop at current with this reader");
@@ -211,11 +211,11 @@ public class InMemStorage extends StorageDescriptor {
     }
 
     @Override
-    public ObserveHandle observeBulk(
+    public <T> ObserveHandle observeBulk(
         String name,
         Position position,
         boolean stopAtCurrent,
-        BulkLogObserver observer) {
+        BulkLogObserver<T> observer) {
 
       if (position != Position.NEWEST) {
         throw new UnsupportedOperationException(
@@ -263,22 +263,22 @@ public class InMemStorage extends StorageDescriptor {
     }
 
     @Override
-    public <T> Dataset<T> observePartitions(
+    public <IN, OUT> Dataset<OUT> observePartitions(
         Flow flow,
         Collection<Partition> partitions,
-        PartitionedLogObserver<T> observer) {
+        PartitionedLogObserver<IN, OUT> observer) {
 
       if (partitions.size() != 1 || partitions.stream().findFirst().get().getId() != 0) {
         throw new IllegalArgumentException(
             "This fake implementation has only single partition");
       }
 
-      SynchronousQueue<T> queue = new SynchronousQueue<>();
+      SynchronousQueue<OUT> queue = new SynchronousQueue<>();
       DataSourceUtils.Producer producer = () -> {
         observer.onRepartition(partitions);
-        observe("partitionedView-" + flow.getName(), new LogObserver() {
+        observe("partitionedView-" + flow.getName(), new LogObserver<IN>() {
           @Override
-          public boolean onNext(StreamElement ingest, LogObserver.OffsetCommitter confirm) {
+          public boolean onNext(StreamElement<IN> ingest, OffsetCommitter confirm) {
             observer.onNext(ingest, confirm::commit, () -> 0, e -> {
               try {
                 queue.put(e);
@@ -306,28 +306,28 @@ public class InMemStorage extends StorageDescriptor {
     }
 
     @Override
-    public <T> Dataset<T> observe(
+    public <IN, OUT> Dataset<OUT> observe(
         Flow flow,
         String name,
-        PartitionedLogObserver<T> observer) {
+        PartitionedLogObserver<IN, OUT> observer) {
 
       return observePartitions(flow, getPartitions(), observer);
     }
 
     @Override
-    public ObserveHandle observeBulkPartitions(
+    public <T> ObserveHandle observeBulkPartitions(
         String name,
         Collection<Partition> partitions,
         Position position,
         boolean stopAtCurrent,
-        BulkLogObserver observer) {
+        BulkLogObserver<T> observer) {
 
       return observeBulk(name, position, observer);
     }
 
     @Override
-    public ObserveHandle observeBulkOffsets(
-        Collection<Offset> offsets, BulkLogObserver observer) {
+    public <T> ObserveHandle observeBulkOffsets(
+        Collection<Offset> offsets, BulkLogObserver<T> observer) {
       return observeBulkPartitions(
           offsets.stream().map(Offset::getPartition).collect(Collectors.toList()),
           Position.NEWEST,
@@ -472,11 +472,11 @@ public class InMemStorage extends StorageDescriptor {
 
   }
 
-  private static class CachedView implements PartitionedCachedView {
+  private static class CachedView<T> implements PartitionedCachedView<T> {
 
     private final RandomAccessReader reader;
     private final OnlineAttributeWriter writer;
-    private BiConsumer<StreamElement, Pair<Long, Object>> updateCallback;
+    private BiConsumer<StreamElement<T>, Pair<Long, T>> updateCallback;
 
     CachedView(RandomAccessReader reader, OnlineAttributeWriter writer) {
       this.reader = reader;
@@ -486,7 +486,7 @@ public class InMemStorage extends StorageDescriptor {
     @Override
     public void assign(
         Collection<Partition> partitions,
-        BiConsumer<StreamElement, Pair<Long, Object>> updateCallback) {
+        BiConsumer<StreamElement<T>, Pair<Long, T>> updateCallback) {
 
       this.updateCallback = updateCallback;
     }
@@ -537,11 +537,12 @@ public class InMemStorage extends StorageDescriptor {
 
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public void write(StreamElement data, CommitCallback statusCallback) {
+    public void write(StreamElement<T> data, CommitCallback statusCallback) {
       updateCallback.accept(
           data,
-          Pair.of(-1L, get(
+          Pair.of(-1L, (T) get(
               data.getKey(), data.getAttribute(),
               data.getAttributeDescriptor()).orElse(null)));
       writer.write(data, statusCallback);
@@ -588,7 +589,7 @@ public class InMemStorage extends StorageDescriptor {
 
     return new DataAccessor() {
       @Override
-      public Optional<AttributeWriterBase> getWriter(Context context) {
+      public Optional<AttributeWriterBase<?>> getWriter(Context context) {
         Objects.requireNonNull(context);
         return Optional.of(writer);
       }
@@ -612,7 +613,7 @@ public class InMemStorage extends StorageDescriptor {
       }
 
       @Override
-      public Optional<PartitionedCachedView> getCachedView(Context context) {
+      public Optional<PartitionedCachedView<?>> getCachedView(Context context) {
         Objects.requireNonNull(context);
         return Optional.of(cachedView);
       }

@@ -220,7 +220,7 @@ public class ConfigRepository implements Repository, Serializable {
   /**
    * Cache of writers for all attributes.
    */
-  private final Map<AttributeDescriptor<?>, OnlineAttributeWriter> writers
+  private final Map<AttributeDescriptor<?>, OnlineAttributeWriter<?>> writers
       = Collections.synchronizedMap(new HashMap<>());
 
   /**
@@ -867,17 +867,18 @@ public class ConfigRepository implements Repository, Serializable {
         "Cannot find any family for attribute " + attr);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
-  public Optional<OnlineAttributeWriter> getWriter(AttributeDescriptor<?> attr) {
+  public <T> Optional<OnlineAttributeWriter<T>> getWriter(AttributeDescriptor<T> attr) {
     synchronized (writers) {
-      return Optional.ofNullable(writers.computeIfAbsent(attr, a -> {
+      return Optional.ofNullable((OnlineAttributeWriter) writers.computeIfAbsent(attr, a -> {
         return getFamiliesForAttribute(a)
             .stream()
             .filter(af -> af.getType() == StorageType.PRIMARY)
             .filter(af -> !af.getAccess().isReadonly())
             .findAny()
             .flatMap(af -> af.getWriter())
-            .map(w -> w.online())
+            .map(w -> (OnlineAttributeWriter<T>) w.online())
             .orElse(null);
       }));
     }

@@ -104,7 +104,7 @@ public class ConfigRepositoryTest {
   public void testProxyWrite() throws UnsupportedEncodingException, InterruptedException {
     EntityDescriptor proxied = repo.findEntity("proxied").get();
     AttributeDescriptor<?> target = proxied.findAttribute("_e.*", true).get();
-    AttributeDescriptor<?> source = proxied.findAttribute("event.*").get();
+    AttributeDescriptor<byte[]> source = proxied.<byte[]>findAttribute("event.*").get();
     Set<AttributeFamilyDescriptor> families = repo
         .getFamiliesForAttribute(target);
     Set<AttributeFamilyDescriptor> proxiedFamilies = repo
@@ -119,10 +119,10 @@ public class ConfigRepositoryTest {
 
     // verify that writing to attribute event.abc ends up as _e.abc
     CountDownLatch latch = new CountDownLatch(2);
-    proxiedFamilies.iterator().next().getCommitLogReader().get().observe("dummy", new LogObserver() {
+    proxiedFamilies.iterator().next().getCommitLogReader().get().observe("dummy", new LogObserver<Object>() {
 
       @Override
-      public boolean onNext(StreamElement ingest, LogObserver.OffsetCommitter confirm) {
+      public boolean onNext(StreamElement<Object> ingest, OffsetCommitter confirm) {
         assertEquals("test", new String(ingest.getValue()));
         assertEquals("event.abc", ingest.getAttribute());
         assertEquals(source, ingest.getAttributeDescriptor());
@@ -162,7 +162,7 @@ public class ConfigRepositoryTest {
   public void testProxyRandomGet() throws UnsupportedEncodingException, InterruptedException {
     EntityDescriptor proxied = repo.findEntity("proxied").get();
     AttributeDescriptor<?> target = proxied.findAttribute("_e.*", true).get();
-    AttributeDescriptor<?> source = proxied.findAttribute("event.*").get();
+    AttributeDescriptor<byte[]> source = proxied.<byte[]>findAttribute("event.*").get();
     Set<AttributeFamilyDescriptor> proxiedFamilies = repo
         .getFamiliesForAttribute(source);
 
@@ -191,7 +191,7 @@ public class ConfigRepositoryTest {
   @Test
   public void testProxyScan() throws UnsupportedEncodingException, InterruptedException {
     EntityDescriptor proxied = repo.findEntity("proxied").get();
-    AttributeDescriptor<?> source = proxied.findAttribute("event.*").get();
+    AttributeDescriptor<byte[]> source = proxied.<byte[]>findAttribute("event.*").get();
     Set<AttributeFamilyDescriptor> proxiedFamilies = repo
         .getFamiliesForAttribute(source);
 
@@ -231,9 +231,9 @@ public class ConfigRepositoryTest {
   @Test
   public void testProxyCachedView() throws UnsupportedEncodingException {
     EntityDescriptor proxied = repo.findEntity("proxied").get();
-    AttributeDescriptor<?> target = proxied.findAttribute("_e.*", true).get();
-    AttributeDescriptor<?> source = proxied.findAttribute("event.*").get();
-    PartitionedCachedView view = repo.getFamiliesForAttribute(source).stream()
+    AttributeDescriptor<byte[]> target = proxied.<byte[]>findAttribute("_e.*", true).get();
+    AttributeDescriptor<byte[]> source = proxied.<byte[]>findAttribute("event.*").get();
+    PartitionedCachedView<?> view = repo.getFamiliesForAttribute(source).stream()
         .filter(af -> af.getAccess().canCreatePartitionedCachedView())
         .findAny()
         .flatMap(af -> af.getPartitionedCachedView())

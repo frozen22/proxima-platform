@@ -206,6 +206,7 @@ public class StreamElement<T> implements Serializable {
 
   /**
    * Update given entity attribute with given value.
+   * @param <T> data type of the attribute
    * @param entityDesc descriptor of entity
    * @param attributeDesc descriptor of attribute
    * @param uuid UUID of the request
@@ -215,9 +216,9 @@ public class StreamElement<T> implements Serializable {
    * @param value serialized value
    * @return {@link StreamElement} to be written to the system
    */
-  public static StreamElement update(
+  public static <T> StreamElement<T> update(
       EntityDescriptor entityDesc,
-      AttributeDescriptor<?> attributeDesc,
+      AttributeDescriptor<T> attributeDesc,
       String uuid,
       String key,
       String attribute,
@@ -230,6 +231,7 @@ public class StreamElement<T> implements Serializable {
 
   /**
    * Delete given instance of attribute.
+   * @param <T> data type of the attribute
    * @param entityDesc descriptor of entity
    * @param attributeDesc descriptor of attribute
    * @param uuid UUID of the event
@@ -238,9 +240,9 @@ public class StreamElement<T> implements Serializable {
    * @param stamp timestamp of the delete event
    * @return {@link StreamElement} to be written to the system
    */
-  public static StreamElement delete(
+  public static <T> StreamElement<T> delete(
       EntityDescriptor entityDesc,
-      AttributeDescriptor<?> attributeDesc,
+      AttributeDescriptor<T> attributeDesc,
       String uuid,
       String key,
       String attribute,
@@ -252,6 +254,7 @@ public class StreamElement<T> implements Serializable {
 
   /**
    * Delete all versions of given wildcard attribute.
+   * @param <T> data type of the attribute
    * @param entityDesc descriptor of entity
    * @param attributeDesc descriptor of attribute
    * @param uuid UUID of the event
@@ -259,9 +262,9 @@ public class StreamElement<T> implements Serializable {
    * @param stamp timestamp of the event
    * @return {@link StreamElement} to be written to the system
    */
-  public static StreamElement deleteWildcard(
+  public static <T> StreamElement<T> deleteWildcard(
       EntityDescriptor entityDesc,
-      AttributeDescriptor<?> attributeDesc,
+      AttributeDescriptor<T> attributeDesc,
       String uuid,
       String key,
       long stamp) {

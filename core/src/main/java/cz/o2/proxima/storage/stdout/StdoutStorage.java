@@ -47,10 +47,10 @@ public class StdoutStorage extends StorageDescriptor {
     return new DataAccessor() {
 
       @Override
-      public Optional<AttributeWriterBase> getWriter(Context context) {
-        return Optional.of(new AbstractOnlineAttributeWriter(entityDesc, dummy) {
+      public Optional<AttributeWriterBase<?>> getWriter(Context context) {
+        return Optional.of(new AbstractOnlineAttributeWriter<Object>(entityDesc, dummy) {
           @Override
-          public void write(StreamElement data, CommitCallback callback) {
+          public void write(StreamElement<Object> data, CommitCallback callback) {
             System.out.println(String.format(
               "Writing entity %s to attribute %s with key %s and value of size %d",
               data.getEntityDescriptor(), data.getAttributeDescriptor(), data.getKey(),

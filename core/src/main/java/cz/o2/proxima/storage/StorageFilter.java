@@ -25,42 +25,42 @@ import java.util.List;
  */
 @Stable
 @FunctionalInterface
-public interface StorageFilter extends Serializable {
+public interface StorageFilter<T> extends Serializable {
 
   /** Filter consisting of several filters with applied function. */
-  public static abstract class CompoundFilter implements StorageFilter {
+  public static abstract class CompoundFilter<T> implements StorageFilter<T> {
 
-    protected final List<StorageFilter> filters = new ArrayList<>();
+    protected final List<StorageFilter<T>> filters = new ArrayList<>();
 
-    CompoundFilter(List<StorageFilter> filters) {
+    CompoundFilter(List<StorageFilter<T>> filters) {
       this.filters.addAll(filters);
     }
 
   }
 
   /** Filter performing logical OR of several filters. */
-  public static class OrFilter extends CompoundFilter {
+  public static class OrFilter<T> extends CompoundFilter<T> {
 
-    protected OrFilter(List<StorageFilter> filters) {
+    protected OrFilter(List<StorageFilter<T>> filters) {
       super(filters);
     }
 
     @Override
-    public boolean apply(StreamElement ingest) {
+    public boolean apply(StreamElement<T> ingest) {
       return filters.stream().anyMatch(f -> f.apply(ingest));
     }
 
   }
 
   /** Filter performing logical AND of several filters. */
-  public static class AndFilter extends CompoundFilter {
+  public static class AndFilter<T> extends CompoundFilter<T> {
 
-    protected AndFilter(List<StorageFilter> filters) {
+    protected AndFilter(List<StorageFilter<T>> filters) {
       super(filters);
     }
 
     @Override
-    public boolean apply(StreamElement ingest) {
+    public boolean apply(StreamElement<T> ingest) {
       return filters.stream().allMatch(f -> f.apply(ingest));
     }
 
@@ -72,6 +72,6 @@ public interface StorageFilter extends Serializable {
    * @param ingest the input data
    * @return {@code false} to throw the element away
    */
-  boolean apply(StreamElement ingest);
+  boolean apply(StreamElement<T> ingest);
 
 }

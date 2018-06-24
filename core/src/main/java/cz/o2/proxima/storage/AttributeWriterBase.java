@@ -23,7 +23,7 @@ import java.net.URI;
  * Base interface for {@code OnlineAttributeWriter} and {@code BulkAttributeWriter}.
  */
 @Stable
-public interface AttributeWriterBase extends Serializable {
+public interface AttributeWriterBase<T> extends Serializable {
 
   enum Type {
     ONLINE,
@@ -51,8 +51,8 @@ public interface AttributeWriterBase extends Serializable {
    * @return {@link OnlineAttributeWriter} from this writer
    */
   @SuppressWarnings("unchecked")
-  default OnlineAttributeWriter online() {
-    return (OnlineAttributeWriter) this;
+  default OnlineAttributeWriter<T> online() {
+    return (OnlineAttributeWriter<T>) this;
   }
 
   /**
@@ -61,8 +61,8 @@ public interface AttributeWriterBase extends Serializable {
    * @return {@link BulkAttributeWriter} from this writer
    */
   @SuppressWarnings("unchecked")
-  default BulkAttributeWriter bulk() {
-    return (BulkAttributeWriter) this;
+  default BulkAttributeWriter<T> bulk() {
+    return (BulkAttributeWriter<T>) this;
   }
 
 }

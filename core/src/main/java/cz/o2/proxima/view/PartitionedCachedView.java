@@ -34,8 +34,8 @@ import java.util.Collection;
  * that read-write operations have happens-before relation semantics.
  */
 @Stable
-public interface PartitionedCachedView
-    extends RandomAccessReader, OnlineAttributeWriter {
+public interface PartitionedCachedView<T>
+    extends RandomAccessReader, OnlineAttributeWriter<T> {
 
   /**
    * Assign and make given partitions accessible by random reads.
@@ -59,7 +59,7 @@ public interface PartitionedCachedView
    */
   void assign(
       Collection<Partition> partitions,
-      BiConsumer<StreamElement, Pair<Long, Object>> updateCallback);
+      BiConsumer<StreamElement<T>, Pair<Long, T>> updateCallback);
 
   /**
    * Retrieve currently assigned partitions.

@@ -44,22 +44,22 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Stable
 @Slf4j
-public class UnboundedStreamSource
-    implements UnboundedDataSource<StreamElement, Offset> {
+public class UnboundedStreamSource<T>
+    implements UnboundedDataSource<StreamElement<T>, Offset> {
 
-  public static UnboundedStreamSource of(
+  public static <T> UnboundedStreamSource<T> of(
       CommitLogReader reader,
       Position position) {
 
-    return new UnboundedStreamSource(null, reader, position);
+    return new UnboundedStreamSource<T>(null, reader, position);
   }
 
-  public static UnboundedStreamSource of(
+  public static <T> UnboundedStreamSource<T> of(
       @Nullable String name,
       CommitLogReader reader,
       Position position) {
 
-    return new UnboundedStreamSource(name, reader, position);
+    return new UnboundedStreamSource<T>(name, reader, position);
   }
 
 
@@ -78,19 +78,19 @@ public class UnboundedStreamSource
   }
 
   @Override
-  public List<UnboundedPartition<StreamElement, Offset>> getPartitions() {
+  public List<UnboundedPartition<StreamElement<T>, Offset>> getPartitions() {
     return reader.getPartitions().stream()
         .map(this::asUnboundedPartition)
         .collect(Collectors.toList());
   }
 
-  private UnboundedPartition<StreamElement, Offset> asUnboundedPartition(
+  private UnboundedPartition<StreamElement<T>, Offset> asUnboundedPartition(
       Partition p) {
 
     return () -> {
 
-      BlockingQueue<Optional<StreamElement>> queue = new ArrayBlockingQueue<>(100);
-      AtomicReference<StreamElement> current = new AtomicReference<>();
+      BlockingQueue<Optional<StreamElement<T>>> queue = new ArrayBlockingQueue<>(100);
+      AtomicReference<StreamElement<T>> current = new AtomicReference<>();
 
       BlockingQueue<BulkLogObserver.OffsetCommitter> committers = new LinkedBlockingDeque<>();
       AtomicReference<ObserveHandle> handle = new AtomicReference<>();
@@ -100,7 +100,7 @@ public class UnboundedStreamSource
           position,
           partitionObserver(queue, committers)));
 
-      return new UnboundedReader<StreamElement, Offset>() {
+      return new UnboundedReader<StreamElement<T>, Offset>() {
 
         @Override
         public void close() throws IOException {
@@ -110,7 +110,7 @@ public class UnboundedStreamSource
         @Override
         public boolean hasNext() {
           try {
-            Optional<StreamElement> elem = queue.take();
+            Optional<StreamElement<T>> elem = queue.take();
             if (elem.isPresent()) {
               current.set(elem.get());
               return true;
@@ -122,7 +122,7 @@ public class UnboundedStreamSource
         }
 
         @Override
-        public StreamElement next() {
+        public StreamElement<T> next() {
           return current.get();
         }
 
@@ -148,15 +148,15 @@ public class UnboundedStreamSource
 
   }
 
-  private BulkLogObserver partitionObserver(
-      BlockingQueue<Optional<StreamElement>> queue,
+  private BulkLogObserver<T> partitionObserver(
+      BlockingQueue<Optional<StreamElement<T>>> queue,
       BlockingQueue<BulkLogObserver.OffsetCommitter> committers) {
 
-    return new BulkLogObserver() {
+    return new BulkLogObserver<T>() {
 
       @Override
       public boolean onNext(
-          StreamElement ingest,
+          StreamElement<T> ingest,
           BulkLogObserver.OffsetCommitter confirm) {
 
         try {

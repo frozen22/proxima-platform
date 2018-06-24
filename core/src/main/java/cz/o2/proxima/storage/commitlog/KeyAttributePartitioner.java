@@ -16,16 +16,15 @@
 package cz.o2.proxima.storage.commitlog;
 
 import cz.o2.proxima.storage.StreamElement;
-import cz.o2.proxima.storage.commitlog.Partitioner;
 import java.util.Objects;
 
 /**
  * Partitioner based on key-value pairs.
  */
-public class KeyAttributePartitioner implements Partitioner {
+public class KeyAttributePartitioner implements Partitioner<Object> {
 
   @Override
-  public int getPartitionId(StreamElement element) {
+  public int getPartitionId(StreamElement<Object> element) {
     return Objects.hash(element.getKey(), element.getAttribute());
   }
 

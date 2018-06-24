@@ -46,30 +46,32 @@ public interface PartitionedView extends Serializable {
    * Subscribe to given set of partitions.
    * If you use this call then the reader stops being automatically
    * load balanced and the set of partitions cannot be changed.
-   * @param <T> output data type
+   * @param <IN> input data type
+   * @param <OUT> output data type
    * @param flow the flow to run this observation in
    * @param partitions the list of partitions to subscribe to
    * @param observer the observer to subscribe to the partitions
    * @return {@link Dataset} produced by this observer
    */
-  <T> Dataset<T> observePartitions(
+  <IN, OUT> Dataset<OUT> observePartitions(
       Flow flow,
       Collection<Partition> partitions,
-      PartitionedLogObserver<T> observer);
+      PartitionedLogObserver<IN, OUT> observer);
 
 
   /**
    * Subscribe to given set of partitions.
    * If you use this call then the reader stops being automatically
    * load balanced and the set of partitions cannot be changed.
-   * @param <T> output datatype
+   * @param <IN> input data type
+   * @param <OUT> output data type
    * @param partitions the list of partitions to subscribe to
    * @param observer the observer to subscribe to the partitions
    * @return {@link Dataset} produced by this observer
    */
-  default <T> Dataset<T> observePartitions(
+  default <IN, OUT> Dataset<OUT> observePartitions(
       Collection<Partition> partitions,
-      PartitionedLogObserver<T> observer) {
+      PartitionedLogObserver<IN, OUT> observer) {
 
     return observePartitions(Flow.create(), partitions, observer);
   }
@@ -82,16 +84,17 @@ public interface PartitionedView extends Serializable {
    * If multiple observers share the same name, then the data
    * is load-balanced between them (in an undefined manner).
    * This is a non blocking call.
-   * @param <T> output data type
+   * @param <IN> input data type
+   * @param <OUT> output data type
    * @param flow the flow to observe the data in
    * @param name identifier of the consumer
    * @param observer the observer to subscribe to the commit log
    * @return {@link Dataset} produced by this observer
    */
-  <T> Dataset<T> observe(
+  <IN, OUT> Dataset<OUT> observe(
       Flow flow,
       String name,
-      PartitionedLogObserver<T> observer);
+      PartitionedLogObserver<IN, OUT> observer);
 
 
   /**
@@ -101,13 +104,14 @@ public interface PartitionedView extends Serializable {
    * If multiple observers share the same name, then the data
    * is load-balanced between them (in an undefined manner).
    * This is a non blocking call.
-   * @param <T> output data type
+   * @param <IN> input data type
+   * @param <OUT> output data type
    * @param name name of the observer
    * @param observer the observer
    * @return {@link Dataset} produced by this observer
    */
-  default <T> Dataset<T> observe(
-      String name, PartitionedLogObserver<T> observer) {
+  default <IN, OUT> Dataset<OUT> observe(
+      String name, PartitionedLogObserver<IN, OUT> observer) {
 
     return observe(Flow.create(), name, observer);
   }

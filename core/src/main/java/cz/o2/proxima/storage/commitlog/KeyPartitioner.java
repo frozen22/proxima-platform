@@ -16,16 +16,15 @@
 package cz.o2.proxima.storage.commitlog;
 
 import cz.o2.proxima.storage.StreamElement;
-import cz.o2.proxima.storage.commitlog.Partitioner;
 
 /**
  * A partitioner based on key of entity.
  * This is the default partitioner.
  */
-public class KeyPartitioner implements Partitioner {
+public class KeyPartitioner implements Partitioner<Object> {
 
   @Override
-  public int getPartitionId(StreamElement element) {
+  public int getPartitionId(StreamElement<Object> element) {
     return element.getKey().hashCode();
   }
 

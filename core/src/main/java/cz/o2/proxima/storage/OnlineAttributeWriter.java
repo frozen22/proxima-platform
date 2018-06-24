@@ -34,7 +34,7 @@ import cz.o2.proxima.annotations.Stable;
  * message. If so, the message is not written to the commit log twice.
  */
 @Stable
-public interface OnlineAttributeWriter extends AttributeWriterBase {
+public interface OnlineAttributeWriter<T> extends AttributeWriterBase<T> {
 
   @Override
   default Type getType() {
@@ -51,6 +51,6 @@ public interface OnlineAttributeWriter extends AttributeWriterBase {
    * @param data the data to write
    * @param statusCallback callback used to commit data processing
    */
-  void write(StreamElement data, CommitCallback statusCallback);
+  void write(StreamElement<T> data, CommitCallback statusCallback);
 
 }

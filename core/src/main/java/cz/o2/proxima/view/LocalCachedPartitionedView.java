@@ -55,7 +55,7 @@ import lombok.extern.slf4j.Slf4j;
  * A transformation view from {@link PartitionedView} to {@link PartitionedCachedView}.
  */
 @Slf4j
-public class LocalCachedPartitionedView implements PartitionedCachedView {
+public class LocalCachedPartitionedView<T> implements PartitionedCachedView<T> {
 
   private final CommitLogReader reader;
   private final EntityDescriptor entity;
@@ -63,13 +63,13 @@ public class LocalCachedPartitionedView implements PartitionedCachedView {
   /**
    * Writer to persist data to.
    */
-  private final OnlineAttributeWriter writer;
+  private final OnlineAttributeWriter<T> writer;
 
   /**
    * Cache for data in memory.
    * Entity key -&gt; Attribute -&gt; (timestamp, value)
    */
-  private final Map<String, NavigableMap<String, Pair<Long, Object>>> cache =
+  private final Map<String, NavigableMap<String, Pair<Long, T>>> cache =
       Collections.synchronizedMap(new HashMap<>());
 
   /**
@@ -77,10 +77,11 @@ public class LocalCachedPartitionedView implements PartitionedCachedView {
    */
   private final AtomicReference<ObserveHandle> handle = new AtomicReference<>();
 
-  private BiConsumer<StreamElement, Pair<Long, Object>> updateCallback = (e, old) -> { };
+  private BiConsumer<StreamElement<T>, Pair<Long, T>> updateCallback = (e, old) -> { };
 
   public LocalCachedPartitionedView(
-      EntityDescriptor entity, CommitLogReader reader, OnlineAttributeWriter writer) {
+      EntityDescriptor entity, CommitLogReader reader,
+      OnlineAttributeWriter<T> writer) {
 
     this.reader = reader;
     this.entity = entity;
@@ -88,9 +89,9 @@ public class LocalCachedPartitionedView implements PartitionedCachedView {
   }
 
   @SuppressWarnings("unchecked")
-  private void onCache(StreamElement ingest, boolean overwrite) throws Exception {
+  private void onCache(StreamElement<T> ingest, boolean overwrite) throws Exception {
 
-    final Optional<Object> parsed = ingest.isDelete()
+    final Optional<T> parsed = ingest.isDelete()
         ? Optional.empty()
         : ingest.getParsed();
     if (ingest.isDelete() || parsed.isPresent()) {
@@ -101,16 +102,16 @@ public class LocalCachedPartitionedView implements PartitionedCachedView {
         attrName = ingest.getAttribute();
       }
       AtomicBoolean updated = new AtomicBoolean();
-      AtomicReference<Pair<Long, Object>> oldVal = new AtomicReference<>();
+      AtomicReference<Pair<Long, T>> oldVal = new AtomicReference<>();
       cache.compute(ingest.getKey(), (key, m) -> {
         if (m == null) {
           m = new TreeMap<>();
         }
-        final Map<String, Pair<Long, Object>> attrMap = m;
+        final Map<String, Pair<Long, T>> attrMap = m;
         m.compute(attrName, (k, c) -> {
           boolean wildcardDeleted = false;
           if (ingest.getAttributeDescriptor().isWildcard()) {
-            Pair<Long, Object> wildcardRec;
+            Pair<Long, T> wildcardRec;
             wildcardRec = attrMap.get(ingest.getAttributeDescriptor().toAttributePrefix());
             if (wildcardRec != null) {
               c = c == null
@@ -143,19 +144,19 @@ public class LocalCachedPartitionedView implements PartitionedCachedView {
   @Override
   public void assign(
       Collection<Partition> partitions,
-      BiConsumer<StreamElement, Pair<Long, Object>> updateCallback) {
+      BiConsumer<StreamElement<T>, Pair<Long, T>> updateCallback) {
 
     close();
     this.updateCallback = Objects.requireNonNull(updateCallback);
     CountDownLatch latch = new CountDownLatch(1);
     AtomicLong prefetchedCount = new AtomicLong();
 
-    BulkLogObserver prefetchObserver = new BulkLogObserver() {
+    BulkLogObserver<T> prefetchObserver = new BulkLogObserver<T>() {
       @Override
       public boolean onNext(
-          StreamElement ingest,
+          StreamElement<T> ingest,
           Partition partition,
-          BulkLogObserver.OffsetCommitter committer) {
+          OffsetCommitter committer) {
 
         try {
           prefetchedCount.incrementAndGet();
@@ -181,11 +182,11 @@ public class LocalCachedPartitionedView implements PartitionedCachedView {
       }
 
     };
-    BulkLogObserver observer = new BulkLogObserver() {
+    BulkLogObserver<T> observer = new BulkLogObserver<T>() {
 
       @Override
       public boolean onNext(
-          StreamElement ingest,
+          StreamElement<T> ingest,
           Partition partition,
           OffsetCommitter confirm) {
 
@@ -245,27 +246,28 @@ public class LocalCachedPartitionedView implements PartitionedCachedView {
     return new RawOffset(key);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
-  public <T> Optional<KeyValue<T>> get(
+  public <X> Optional<KeyValue<X>> get(
       String key,
       String attribute,
-      AttributeDescriptor<T> desc) {
+      AttributeDescriptor<X> desc) {
 
-    Optional<NavigableMap<String, Pair<Long, Object>>> keyMap;
+    Optional<NavigableMap<String, Pair<Long, T>>> keyMap;
     keyMap = Optional.ofNullable(cache.get(key));
     if (keyMap.isPresent()) {
-      NavigableMap<String, Pair<Long, Object>> m = keyMap.get();
+      NavigableMap<String, Pair<Long, T>> m = keyMap.get();
       return Optional.ofNullable(m.get(attribute))
           .flatMap(p -> {
             if (desc.isWildcard()) {
               // verify if we don't have later wildcard record
-              Pair<Long, Object> wildcard = m.get(desc.toAttributePrefix());
+              Pair<Long, X> wildcard = (Pair<Long, X>) m.get(desc.toAttributePrefix());
               if (wildcard == null || wildcard.getFirst() < p.getFirst()) {
                 return Optional.ofNullable(toKv(key, attribute, p));
               }
               return Optional.ofNullable(toKv(key, attribute, wildcard));
             }
-            return Optional.ofNullable(toKv(key, attribute, p));
+            return Optional.ofNullable(toKv(key, attribute, (Pair) p));
           });
     }
     return Optional.empty();
@@ -304,15 +306,15 @@ public class LocalCachedPartitionedView implements PartitionedCachedView {
       int limit,
       Consumer<KeyValue<?>> consumer) {
 
-    NavigableMap<String, Pair<Long, Object>> m = cache.get(key);
+    NavigableMap<String, Pair<Long, T>> m = cache.get(key);
     log.debug(
         "Scanning prefix {} of key {} with map.size {}",
         prefix, key, m == null ? -1 : m.size());
     if (m != null) {
       String prefixName = null;
-      Pair<Long, Object> prefixRecord = null;
-      SortedMap<String, Pair<Long, Object>> tail = m.tailMap(offset);
-      for (Map.Entry<String, Pair<Long, Object>> e : tail.entrySet()) {
+      Pair<Long, T> prefixRecord = null;
+      SortedMap<String, Pair<Long, T>> tail = m.tailMap(offset);
+      for (Map.Entry<String, Pair<Long, T>> e : tail.entrySet()) {
         if (e.getKey().compareTo(offset) <= 0) {
           continue;
         }
@@ -368,7 +370,7 @@ public class LocalCachedPartitionedView implements PartitionedCachedView {
 
   @SuppressWarnings("unchecked")
   private @Nullable <T> KeyValue<T> toKv(
-      String key, String attribute, @Nullable Pair<Long, Object> p) {
+      String key, String attribute, @Nullable Pair<Long, T> p) {
 
     Optional<AttributeDescriptor<Object>> attrDesc = entity.findAttribute(attribute);
     if (attrDesc.isPresent()) {
@@ -381,7 +383,7 @@ public class LocalCachedPartitionedView implements PartitionedCachedView {
   @SuppressWarnings("unchecked")
   private @Nullable <T> KeyValue<T> toKv(
       String key, String attribute,
-      AttributeDescriptor<?> attr, @Nullable Pair<Long, Object> p) {
+      AttributeDescriptor<?> attr, @Nullable Pair<Long, T> p) {
 
     if (p == null || p.getSecond() == null) {
       return null;
@@ -398,7 +400,7 @@ public class LocalCachedPartitionedView implements PartitionedCachedView {
   }
 
   @Override
-  public void write(StreamElement data, CommitCallback statusCallback) {
+  public void write(StreamElement<T> data, CommitCallback statusCallback) {
     try {
       onCache(data, true);
       writer.write(data, statusCallback);

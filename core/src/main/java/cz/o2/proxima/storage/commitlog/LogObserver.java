@@ -31,7 +31,7 @@ import javax.annotation.Nullable;
  * The implementation has to override either of `onNext` methods.
  */
 @Stable
-public interface LogObserver extends LogObserverBase {
+public interface LogObserver<T> extends LogObserverBase {
 
   /**
    * Committer for manipulation with offset during consumption.
@@ -76,6 +76,6 @@ public interface LogObserver extends LogObserverBase {
    * of the ingest. If the application fails to do so, the result is undefined
    * @return {@code true} if the processing should continue, {@code false} otherwise
    **/
-  boolean onNext(StreamElement<?> ingest, OffsetCommitter committer);
+  boolean onNext(StreamElement<T> ingest, OffsetCommitter committer);
 
 }

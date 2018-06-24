@@ -102,9 +102,10 @@ public interface Repository {
   /**
    * Retrieve writer for specified attribute.
    *
+   * @param <T> data type of the attribute
    * @param attr the attribute to retrieve writer for
    * @return the attribute writer
    */
-  Optional<OnlineAttributeWriter> getWriter(AttributeDescriptor<?> attr);
+  <T> Optional<OnlineAttributeWriter<T>> getWriter(AttributeDescriptor<T> attr);
 
 }

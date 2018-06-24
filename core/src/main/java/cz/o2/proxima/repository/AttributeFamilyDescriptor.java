@@ -52,7 +52,7 @@ public class AttributeFamilyDescriptor implements Serializable {
     private String name;
 
     @Setter
-    private AttributeWriterBase writer;
+    private AttributeWriterBase<?> writer;
 
     @Setter
     private RandomAccessReader randomAccess;
@@ -196,7 +196,7 @@ public class AttributeFamilyDescriptor implements Serializable {
    * Empty if this family is not writable.
    * @return optional {@link AttributeWriterBase} of this family
    */
-  public Optional<AttributeWriterBase> getWriter() {
+  public Optional<AttributeWriterBase<?>> getWriter() {
     if (!access.isReadonly()) {
       return Optional.of(Objects.requireNonNull(
           writer, "Family " + name + " is not readonly, but has no writer"));
@@ -262,7 +262,7 @@ public class AttributeFamilyDescriptor implements Serializable {
    * Empty if the attribute family cannot create partitioned cached view.
    * @return optional {@link PartitionedCachedView} of this family
    */
-  public Optional<PartitionedCachedView> getPartitionedCachedView() {
+  public Optional<PartitionedCachedView<?>> getPartitionedCachedView() {
     if (access.canCreatePartitionedCachedView()) {
       return Optional.of(Objects.requireNonNull(
           cachedView, "Family " + name + " cannot create cached view"));

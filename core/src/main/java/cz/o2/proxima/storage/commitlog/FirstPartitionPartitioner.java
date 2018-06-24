@@ -16,15 +16,14 @@
 package cz.o2.proxima.storage.commitlog;
 
 import cz.o2.proxima.storage.StreamElement;
-import cz.o2.proxima.storage.commitlog.Partitioner;
 
 /**
  * Partitioner that always send the ingest into first partition.
  */
-public class FirstPartitionPartitioner implements Partitioner {
+public class FirstPartitionPartitioner implements Partitioner<Object> {
 
   @Override
-  public int getPartitionId(StreamElement element) {
+  public int getPartitionId(StreamElement<Object> element) {
     return 0;
   }
 

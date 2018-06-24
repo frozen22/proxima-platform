@@ -43,14 +43,15 @@ public class PartitionedViewTest implements Serializable {
       ConfigFactory.load()
           .withFallback(ConfigFactory.load("test-reference.conf"))
           .resolve()).build();
-  
+
   private transient LocalExecutor executor;
   private final transient EntityDescriptor entity = repo.findEntity("event").get();
-  private final transient AttributeDescriptor<?> attr = entity.findAttribute("data").get();
+  private final transient AttributeDescriptor<byte[]> attr = entity.<byte[]>findAttribute("data").get();
 
   private transient PartitionedView view;
-  private transient AttributeWriterBase writer;
+  private transient AttributeWriterBase<byte[]> writer;
 
+  @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
     executor = new LocalExecutor();
@@ -60,7 +61,7 @@ public class PartitionedViewTest implements Serializable {
         .get();
 
     view = family.getPartitionedView().get();
-    writer = family.getWriter().get();
+    writer = (AttributeWriterBase) family.getWriter().get();
   }
 
   @After
@@ -74,7 +75,8 @@ public class PartitionedViewTest implements Serializable {
     SerializableCountDownLatch latch = new SerializableCountDownLatch(1);
     SerializableCountDownLatch start = new SerializableCountDownLatch(1);
 
-    Dataset<String> result = view.observePartitions(view.getPartitions(), new PartitionedLogObserver<String>() {
+    Dataset<String> result = view.observePartitions(
+        view.getPartitions(), new PartitionedLogObserver<Object, String>() {
 
       @Override
       public void onRepartition(Collection<Partition> assigned) {
@@ -83,8 +85,8 @@ public class PartitionedViewTest implements Serializable {
 
       @Override
       public boolean onNext(
-          StreamElement ingest,
-          PartitionedLogObserver.ConfirmCallback confirm,
+          StreamElement<Object> ingest,
+          ConfirmCallback confirm,
           Partition partition,
           Consumer<String> collector) {
 

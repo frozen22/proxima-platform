@@ -28,7 +28,7 @@ import java.io.IOException;
  * A {@link DataSink} created from {@link OnlineAttributeWriter}.
  */
 @Experimental("Not well tested")
-public class StreamElementSink<T> implements DataSink<StreamElement> {
+public class StreamElementSink<T> implements DataSink<StreamElement<T>> {
 
   /**
    * Create sink for given attribute.
@@ -39,26 +39,28 @@ public class StreamElementSink<T> implements DataSink<StreamElement> {
    */
   public static <T> StreamElementSink<T> of(
       AttributeDescriptor<T> attribute,
-      OnlineAttributeWriter writer) {
+      OnlineAttributeWriter<T> writer) {
 
     return new StreamElementSink<>(attribute, writer);
   }
 
   private final AttributeDescriptor<T> attr;
-  private final OnlineAttributeWriter writer;
+  private final OnlineAttributeWriter<T> writer;
   private final ValueSerializer<T> serializer;
 
-  private StreamElementSink(AttributeDescriptor<T> attr, OnlineAttributeWriter writer) {
+  private StreamElementSink(
+      AttributeDescriptor<T> attr, OnlineAttributeWriter<T> writer) {
+
     this.attr = attr;
     this.writer = writer;
     this.serializer = attr.getValueSerializer();
   }
 
   @Override
-  public Writer<StreamElement> openWriter(int i) {
-    return new Writer<StreamElement>() {
+  public Writer<StreamElement<T>> openWriter(int i) {
+    return new Writer<StreamElement<T>>() {
       @Override
-      public void write(StreamElement e) throws IOException {
+      public void write(StreamElement<T> e) throws IOException {
         writer.write(e, (succ, exc) -> {
           if (!succ) {
             throw new RuntimeException(exc);

@@ -26,8 +26,8 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Stable
 @Slf4j
-public abstract class RetryableLogObserver
-    extends AbstractRetryableLogObserver implements LogObserver {
+public abstract class RetryableLogObserver<T>
+    extends AbstractRetryableLogObserver implements LogObserver<T> {
 
   public RetryableLogObserver(
       int maxRetries,
@@ -39,7 +39,7 @@ public abstract class RetryableLogObserver
 
   @Override
   public final boolean onNext(
-      StreamElement ingest, LogObserver.OffsetCommitter confirm) {
+      StreamElement<T> ingest, OffsetCommitter confirm) {
 
     boolean ret = onNextInternal(ingest, confirm);
     success();
@@ -61,6 +61,6 @@ public abstract class RetryableLogObserver
    * @return {@code true} to continue processing, {@code false} otherwise
    */
   protected abstract boolean onNextInternal(
-      StreamElement ingest, LogObserver.OffsetCommitter confirm);
+      StreamElement<T> ingest, OffsetCommitter confirm);
 
 }
