@@ -23,7 +23,9 @@ import cz.o2.proxima.repository.EntityDescriptor;
 import cz.o2.proxima.repository.Repository;
 import java.net.URI;
 import java.util.UUID;
+
 import static org.junit.Assert.*;
+
 import org.junit.Test;
 
 /**
@@ -31,63 +33,56 @@ import org.junit.Test;
  */
 public class StreamElementTest {
 
-  final Repository repo = ConfigRepository.Builder
+  private final Repository repo = ConfigRepository.Builder
       .ofTest(ConfigFactory.empty())
       .build();
-  final AttributeDescriptorBase<byte[]> attr;
-  final AttributeDescriptorBase<byte[]> attrWildcard;
-  final EntityDescriptor entity;
 
-  {
-    try {
-      attr = AttributeDescriptor
-            .newBuilder(repo)
-            .setEntity("entity")
-            .setName("attr")
-            .setSchemeURI(new URI("bytes:///"))
-            .build();
+  private final AttributeDescriptorBase<byte[]> attr = AttributeDescriptor.newBuilder(repo)
+      .setEntity("entity")
+      .setName("attr")
+      .setSchemeURI(URI.create("bytes:///"))
+      .build();
 
-      attrWildcard = AttributeDescriptor
-            .newBuilder(repo)
-            .setEntity("entity")
-            .setName("wildcard.*")
-            .setSchemeURI(new URI("bytes:///"))
-            .build();
+  private final AttributeDescriptorBase<byte[]> attrWildcard = AttributeDescriptor.newBuilder(repo)
+      .setEntity("entity")
+      .setName("wildcard.*")
+      .setSchemeURI(URI.create("bytes:///"))
+      .build();
 
-      entity = EntityDescriptor.newBuilder()
-            .setName("entity")
-            .addAttribute(attr)
-            .addAttribute(attrWildcard)
-            .build();
-    } catch (Exception ex) {
-      throw new RuntimeException(ex);
-    }
-  }
-
-
+  private final EntityDescriptor entity = EntityDescriptor.newBuilder()
+      .setName("entity")
+      .addAttribute(attr)
+      .addAttribute(attrWildcard)
+      .build();
 
   @Test
   public void testUpdate() {
-    long now = System.currentTimeMillis();
-    StreamElement update = StreamElement.update(
-        entity, attr, UUID.randomUUID().toString(),
-        "key", attr.getName(), now, new byte[] { 1, 2 });
+    final long now = System.currentTimeMillis();
+    final StreamElement<byte[]> update = StreamElement.of(entity, attr)
+        .uuid(UUID.randomUUID().toString())
+        .key("key")
+        .timestamp(now)
+        .attribute(attr.getName())
+        .updateRaw(new byte[]{1, 2});
     assertFalse(update.isDelete());
     assertFalse(update.isDeleteWildcard());
     assertEquals("key", update.getKey());
     assertEquals(attr.getName(), update.getAttribute());
     assertEquals(attr, update.getAttributeDescriptor());
     assertEquals(entity, update.getEntityDescriptor());
-    assertArrayEquals(new byte[] { 1, 2 }, update.getValue());
+    assertArrayEquals(new byte[]{1, 2}, update.getValue());
     assertEquals(now, update.getStamp());
   }
 
   @Test
   public void testDelete() {
-    long now = System.currentTimeMillis();
-    StreamElement delete = StreamElement.delete(
-        entity, attr, UUID.randomUUID().toString(),
-        "key", attr.getName(), now);
+    final long now = System.currentTimeMillis();
+    final StreamElement<byte[]> delete = StreamElement.of(entity, attr)
+        .uuid(UUID.randomUUID().toString())
+        .key("key")
+        .timestamp(now)
+        .attribute(attr.getName())
+        .delete();
     assertTrue(delete.isDelete());
     assertFalse(delete.isDeleteWildcard());
     assertEquals("key", delete.getKey());
@@ -100,14 +95,16 @@ public class StreamElementTest {
 
   @Test
   public void testDeleteWildcard() {
-    long now = System.currentTimeMillis();
-    StreamElement delete = StreamElement.deleteWildcard(
-        entity, attrWildcard, UUID.randomUUID().toString(),
-        "key", now);
+    final long now = System.currentTimeMillis();
+    final StreamElement<?> delete = StreamElement.of(entity, attrWildcard)
+        .uuid(UUID.randomUUID().toString())
+        .key("key")
+        .timestamp(now)
+        .deleteWildcard();
     assertTrue(delete.isDelete());
     assertTrue(delete.isDeleteWildcard());
     assertEquals("key", delete.getKey());
-    assertEquals(attrWildcard.getName(), delete.getAttribute());
+    assertNull(attrWildcard.getName(), delete.getAttribute());
     assertEquals(attrWildcard, delete.getAttributeDescriptor());
     assertEquals(entity, delete.getEntityDescriptor());
     assertNull(delete.getValue());
