@@ -46,7 +46,7 @@ public class JavaValueSerializerFactory implements ValueSerializerFactory {
       throw new IllegalArgumentException("Unable to create serializer.", e);
     }
 
-    if (Serializable.class.isAssignableFrom(clazz)) {
+    if (!Serializable.class.isAssignableFrom(clazz)) {
       throw new IllegalArgumentException("Class '" + clazz.getName() + "' is not serializable.");
     }
 
