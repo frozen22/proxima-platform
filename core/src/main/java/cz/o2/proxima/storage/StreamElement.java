@@ -301,10 +301,9 @@ public class StreamElement<T> implements Serializable {
       AttributeDescriptor<T> attributeDesc,
       String uuid,
       String key,
-      @Nullable String attribute,
       long stamp,
+      @Nullable String attribute,
       @Nullable byte[] value) {
-
     this.entityDescriptor = Objects.requireNonNull(entityDesc);
     this.attributeDescriptor = Objects.requireNonNull(attributeDesc);
     this.uuid = Objects.requireNonNull(uuid);
