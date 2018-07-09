@@ -24,7 +24,7 @@ import java.io.Serializable;
  * converting single {@code StreamElement} to another {@code StreamElement}.
  */
 @Stable
-public interface Transformation extends Serializable {
+public interface Transformation<T> extends Serializable {
 
   /**
    * Collector for outputs.
@@ -54,6 +54,6 @@ public interface Transformation extends Serializable {
    * @return how many invocations of collector to expect before the elements
    * should be considered processed
    */
-  int apply(StreamElement input, Collector<StreamElement> collector);
+  int apply(StreamElement<T> input, Collector<StreamElement> collector);
 
 }

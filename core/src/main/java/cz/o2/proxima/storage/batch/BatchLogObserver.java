@@ -25,14 +25,14 @@ import cz.o2.proxima.storage.StreamElement;
  * Implementations should override either of `onNext` methods.
  */
 @Stable
-public interface BatchLogObserver {
+public interface BatchLogObserver<T> {
 
   /**
    * Read next data from the batch storage.
    * @param element the retrieved data element
    * @return {@code true} to continue processing, {@code false} otherwise
    */
-  default boolean onNext(StreamElement element) {
+  default boolean onNext(StreamElement<T> element) {
     throw new UnsupportedOperationException("Please override either of `onNext` methods");
   }
 
@@ -42,7 +42,7 @@ public interface BatchLogObserver {
    * @param partition the partition of the element
    * @return {@code true} to continue processing, {@code false} otherwise
    */
-  default boolean onNext(StreamElement element, Partition partition) {
+  default boolean onNext(StreamElement<T> element, Partition partition) {
     return onNext(element);
   }
 

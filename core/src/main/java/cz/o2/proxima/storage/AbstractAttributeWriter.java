@@ -23,8 +23,9 @@ import java.net.URI;
  * Base class for {@code AttributeWriter}s.
  */
 @Internal
-public abstract class AbstractAttributeWriter extends AbstractStorage
-    implements AttributeWriterBase {
+public abstract class AbstractAttributeWriter<T>
+    extends AbstractStorage
+    implements AttributeWriterBase<T> {
 
   protected AbstractAttributeWriter(EntityDescriptor entityDesc, URI uri) {
     super(entityDesc, uri);

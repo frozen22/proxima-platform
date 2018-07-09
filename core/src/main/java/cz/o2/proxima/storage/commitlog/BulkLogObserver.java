@@ -34,7 +34,7 @@ import javax.annotation.Nullable;
  * Implementation has to override either of `onNext` methods.
  */
 @Stable
-public interface BulkLogObserver extends LogObserverBase {
+public interface BulkLogObserver<T> extends LogObserverBase {
 
   /**
    * Interface for bulk commit. When committed, all elements preceding the committed
@@ -83,7 +83,7 @@ public interface BulkLogObserver extends LogObserverBase {
    * processed so far will be committed.
    * @return {@code true} if the processing should continue, {@code false} otherwise
    **/
-  default boolean onNext(StreamElement ingest, OffsetCommitter committer) {
+  default boolean onNext(StreamElement<T> ingest, OffsetCommitter committer) {
     throw new UnsupportedOperationException(
         "Please override either of `onNext` methods");
   }
@@ -100,7 +100,7 @@ public interface BulkLogObserver extends LogObserverBase {
    * @return {@code true} if the processing should continue, {@code false} otherwise
    **/
   default boolean onNext(
-      StreamElement ingest,
+      StreamElement<T> ingest,
       Partition partition,
       OffsetCommitter committer) {
 

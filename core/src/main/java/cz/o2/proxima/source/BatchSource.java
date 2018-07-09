@@ -39,20 +39,22 @@ import java.util.stream.Collectors;
 
 /**
  * Source reading from {@code BatchLogObservable}.
+ * @param <T> data type of log data elements
  */
 @Stable
 @Slf4j
-public class BatchSource<T> implements BoundedDataSource<StreamElement> {
+public class BatchSource<T> implements BoundedDataSource<StreamElement<T>> {
 
   public static <T> BatchSource<T> of(
       BatchLogObservable observable,
-      List<AttributeDescriptor<?>> attrs,
+      List<AttributeDescriptor<? extends T>> attrs,
       long startStamp,
       long endStamp) {
 
     return new BatchSource<>(observable, attrs, startStamp, endStamp);
   }
 
+  @SuppressWarnings("unchecked")
   public static <T> BatchSource<T> of(
       BatchLogObservable observable,
       AttributeFamilyDescriptor family,
@@ -60,18 +62,18 @@ public class BatchSource<T> implements BoundedDataSource<StreamElement> {
       long endStamp) {
 
     return new BatchSource<>(
-        observable, family.getAttributes(), startStamp, endStamp);
+        observable, (List) family.getAttributes(), startStamp, endStamp);
   }
 
-  private static class Observer implements BatchLogObserver {
+  private static class Observer<T> implements BatchLogObserver<T> {
 
     @Getter
-    BlockingQueue<Optional<StreamElement>> queue = new SynchronousQueue<>();
+    BlockingQueue<Optional<StreamElement<T>>> queue = new SynchronousQueue<>();
 
     boolean stop = false;
 
     @Override
-    public boolean onNext(StreamElement element) {
+    public boolean onNext(StreamElement<T> element) {
       try {
         queue.put(Optional.of(element));
       } catch (InterruptedException ex) {
@@ -103,13 +105,13 @@ public class BatchSource<T> implements BoundedDataSource<StreamElement> {
   };
 
   final transient BatchLogObservable observable;
-  final transient List<AttributeDescriptor<?>> attributes;
+  final transient List<AttributeDescriptor<? extends T>> attributes;
   final long startStamp;
   final long endStamp;
 
   private BatchSource(
       BatchLogObservable observable,
-      List<AttributeDescriptor<?>> attributes,
+      List<AttributeDescriptor<? extends T>> attributes,
       long startStamp,
       long endStamp) {
 
@@ -125,30 +127,30 @@ public class BatchSource<T> implements BoundedDataSource<StreamElement> {
   }
 
   @Override
-  public BoundedReader<StreamElement> openReader() throws IOException {
+  public BoundedReader<StreamElement<T>> openReader() throws IOException {
     throw new UnsupportedOperationException("Not supported. Call `split` first.");
   }
 
 
   @Override
   @SuppressWarnings("unchecked")
-  public List<BoundedDataSource<StreamElement>> split(long desiredSplitBytes) {
+  public List<BoundedDataSource<StreamElement<T>>> split(long desiredSplitBytes) {
     return observable.getPartitions(startStamp, endStamp)
         .stream()
         .map(p -> {
 
-          return new UnsplittableBoundedSource<StreamElement>() {
+          return new UnsplittableBoundedSource<StreamElement<T>>() {
             @Override
             public Set<String> getLocations() {
               return Collections.singleton("unknown");
             }
 
             @Override
-            public BoundedReader<StreamElement> openReader() throws IOException {
-              Observer observer = new Observer();
+            public BoundedReader<StreamElement<T>> openReader() throws IOException {
+              Observer<T> observer = new Observer<>();
               observable.observe(Arrays.asList(p), attributes, observer);
-              return new BoundedReader<StreamElement>() {
-                StreamElement current = null;
+              return new BoundedReader<StreamElement<T>>() {
+                StreamElement<T> current = null;
                 @Override
                 public void close() throws IOException {
                   observer.stop();
@@ -167,7 +169,7 @@ public class BatchSource<T> implements BoundedDataSource<StreamElement> {
                 }
 
                 @Override
-                public StreamElement next() {
+                public StreamElement<T> next() {
                   return current;
                 }
               };

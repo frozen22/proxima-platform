@@ -41,7 +41,9 @@ public class StreamElement<T> implements Serializable {
    * @return uuid builder
    */
   public static <T> UUIDBuilder<T> of(
-      EntityDescriptor entityDescriptor, AttributeDescriptor<T> attributeDescriptor) {
+      EntityDescriptor entityDescriptor,
+      AttributeDescriptor<T> attributeDescriptor) {
+
     return new Builder<>(entityDescriptor, attributeDescriptor);
   }
 
@@ -128,7 +130,8 @@ public class StreamElement<T> implements Serializable {
    * @param <T> type of wrapped value
    */
   public static class Builder<T> implements
-      UUIDBuilder<T>, KeyBuilder<T>, TimestampBuilder<T>, AttributeBuilder<T>, FinalBuilder<T> {
+      UUIDBuilder<T>, KeyBuilder<T>, TimestampBuilder<T>,
+      AttributeBuilder<T>, FinalBuilder<T> {
 
     private final EntityDescriptor entityDescriptor;
     private final AttributeDescriptor<T> attributeDescriptor;
@@ -138,7 +141,10 @@ public class StreamElement<T> implements Serializable {
     private long timestamp;
     private String attribute;
 
-    private Builder(EntityDescriptor entityDescriptor, AttributeDescriptor<T> attributeDescriptor) {
+    private Builder(
+        EntityDescriptor entityDescriptor,
+        AttributeDescriptor<T> attributeDescriptor) {
+
       this.entityDescriptor = entityDescriptor;
       this.attributeDescriptor = attributeDescriptor;
     }
@@ -170,31 +176,37 @@ public class StreamElement<T> implements Serializable {
     @Override
     public StreamElement<T> deleteWildcard() {
       return new StreamElement<>(
-          entityDescriptor, attributeDescriptor, uuid, key, timestamp, null, null);
+          entityDescriptor, attributeDescriptor, uuid, key,
+          null, timestamp, null);
     }
 
     @Override
     public StreamElement<T> update(T value) {
-      final byte[] serialized = attributeDescriptor.getValueSerializer().serialize(value);
+      final byte[] serialized = attributeDescriptor.getValueSerializer()
+          .serialize(value);
       return new StreamElement<>(
-          entityDescriptor, attributeDescriptor, uuid, key, timestamp, attribute, serialized);
+          entityDescriptor, attributeDescriptor, uuid, key,
+          attribute, timestamp, serialized);
     }
 
     @Override
     public StreamElement<T> updateRaw(byte[] value) {
       return new StreamElement<>(
-          entityDescriptor, attributeDescriptor, uuid, key, timestamp, attribute, value);
+          entityDescriptor, attributeDescriptor, uuid, key,
+          attribute, timestamp, value);
     }
 
     @Override
     public StreamElement<T> delete() {
       return new StreamElement<>(
-          entityDescriptor, attributeDescriptor, uuid, key, timestamp, attribute, null);
+          entityDescriptor, attributeDescriptor, uuid, key,
+          attribute, timestamp, null);
     }
   }
 
   /**
    * Update given entity attribute with given value.
+   * @param <T> data type of the attribute
    * @param entityDesc descriptor of entity
    * @param attributeDesc descriptor of attribute
    * @param uuid UUID of the request
@@ -204,20 +216,22 @@ public class StreamElement<T> implements Serializable {
    * @param value serialized value
    * @return {@link StreamElement} to be written to the system
    */
-  @Deprecated
-  public static StreamElement update(
+  public static <T> StreamElement<T> update(
       EntityDescriptor entityDesc,
-      AttributeDescriptor<?> attributeDesc,
+      AttributeDescriptor<T> attributeDesc,
       String uuid,
       String key,
       String attribute,
       long stamp,
       byte[] value) {
-    return new StreamElement<>(entityDesc, attributeDesc, uuid, key, stamp, attribute, value);
+
+    return new StreamElement<>(
+        entityDesc, attributeDesc, uuid, key, attribute, stamp, value);
   }
 
   /**
    * Delete given instance of attribute.
+   * @param <T> data type of the attribute
    * @param entityDesc descriptor of entity
    * @param attributeDesc descriptor of attribute
    * @param uuid UUID of the event
@@ -226,19 +240,21 @@ public class StreamElement<T> implements Serializable {
    * @param stamp timestamp of the delete event
    * @return {@link StreamElement} to be written to the system
    */
-  @Deprecated
-  public static StreamElement delete(
+  public static <T> StreamElement<T> delete(
       EntityDescriptor entityDesc,
-      AttributeDescriptor<?> attributeDesc,
+      AttributeDescriptor<T> attributeDesc,
       String uuid,
       String key,
       String attribute,
       long stamp) {
-    return new StreamElement<>(entityDesc, attributeDesc, uuid, key, stamp, attribute, null);
+
+    return new StreamElement<>(
+        entityDesc, attributeDesc, uuid, key, attribute, stamp, null);
   }
 
   /**
    * Delete all versions of given wildcard attribute.
+   * @param <T> data type of the attribute
    * @param entityDesc descriptor of entity
    * @param attributeDesc descriptor of attribute
    * @param uuid UUID of the event
@@ -246,14 +262,15 @@ public class StreamElement<T> implements Serializable {
    * @param stamp timestamp of the event
    * @return {@link StreamElement} to be written to the system
    */
-  @Deprecated
-  public static StreamElement deleteWildcard(
+  public static <T> StreamElement<T> deleteWildcard(
       EntityDescriptor entityDesc,
-      AttributeDescriptor<?> attributeDesc,
+      AttributeDescriptor<T> attributeDesc,
       String uuid,
       String key,
       long stamp) {
-    return new StreamElement<>(entityDesc, attributeDesc, uuid, key, stamp, null, null);
+
+    return new StreamElement<>(
+        entityDesc, attributeDesc, uuid, key, null, stamp, null);
   }
 
   @Getter

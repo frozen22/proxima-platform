@@ -28,7 +28,7 @@ import javax.annotation.Nullable;
  * Observer of data in {@code PartitionedView}.
  */
 @Stable
-public interface PartitionedLogObserver<T> extends LogObserverBase {
+public interface PartitionedLogObserver<IN, OUT> extends LogObserverBase {
 
   @FunctionalInterface
   public interface ConfirmCallback extends Serializable {
@@ -79,9 +79,9 @@ public interface PartitionedLogObserver<T> extends LogObserverBase {
    * @return {@code true} if the processing should continue, {@code false} otherwise
    **/
   boolean onNext(
-      StreamElement ingest, ConfirmCallback confirm,
+      StreamElement<IN> ingest, ConfirmCallback confirm,
       Partition partition,
-      Consumer<T> collector);
+      Consumer<OUT> collector);
 
 
   /**

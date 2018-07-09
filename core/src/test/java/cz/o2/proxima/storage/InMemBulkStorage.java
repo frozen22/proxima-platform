@@ -30,7 +30,7 @@ import lombok.Getter;
  */
 public class InMemBulkStorage extends StorageDescriptor {
 
-  private class Writer extends AbstractBulkAttributeWriter {
+  private class Writer extends AbstractBulkAttributeWriter<Object> {
 
     int writtenSinceLastCommit = 0;
 
@@ -39,7 +39,7 @@ public class InMemBulkStorage extends StorageDescriptor {
     }
 
     @Override
-    public void write(StreamElement data, CommitCallback statusCallback) {
+    public void write(StreamElement<Object> data, CommitCallback statusCallback) {
       // store the data, commit after each 10 elements
       InMemBulkStorage.this.data.put(
           getURI().getPath() + "/" + data.getKey() + "#" + data.getAttribute(),
@@ -68,7 +68,7 @@ public class InMemBulkStorage extends StorageDescriptor {
     }
 
     @Override
-    public Optional<AttributeWriterBase> getWriter(Context context) {
+    public Optional<AttributeWriterBase<?>> getWriter(Context context) {
       return Optional.of(new Writer(entityDesc, uri));
     }
 

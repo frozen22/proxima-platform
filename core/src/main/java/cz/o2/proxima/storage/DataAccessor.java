@@ -36,7 +36,7 @@ public interface DataAccessor extends Serializable {
    * @param context the serializable context provided by repository
    * @return optional {@link AttributeWriterBase} of this accessor
    */
-  default Optional<AttributeWriterBase> getWriter(Context context) {
+  default Optional<AttributeWriterBase<?>> getWriter(Context context) {
     return Optional.empty();
   }
 
@@ -81,7 +81,7 @@ public interface DataAccessor extends Serializable {
    * @param context serializable context provided by repository
    * @return optional {@link PartitionedCachedView} of this accessor
    */
-  default Optional<PartitionedCachedView> getCachedView(Context context) {
+  default Optional<PartitionedCachedView<?>> getCachedView(Context context) {
     return Optional.empty();
   }
 

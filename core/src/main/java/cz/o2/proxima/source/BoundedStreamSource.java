@@ -41,13 +41,13 @@ import java.util.stream.Collectors;
  * characteristics.
  */
 @Stable
-public class BoundedStreamSource implements BoundedDataSource<StreamElement> {
+public class BoundedStreamSource<T> implements BoundedDataSource<StreamElement<T>> {
 
-  public static BoundedStreamSource of(
+  public static <T> BoundedStreamSource<T> of(
       CommitLogReader reader,
       Position position) {
 
-    return new BoundedStreamSource(reader, position);
+    return new BoundedStreamSource<T>(reader, position);
   }
 
   final CommitLogReader reader;
@@ -61,10 +61,10 @@ public class BoundedStreamSource implements BoundedDataSource<StreamElement> {
     this.position = position;
   }
 
-  private BoundedReader<StreamElement> asBoundedReader(Partition p) {
+  private BoundedReader<StreamElement<T>> asBoundedReader(Partition p) {
 
-    BlockingQueue<Optional<StreamElement>> queue = new ArrayBlockingQueue<>(100);
-    AtomicReference<StreamElement> current = new AtomicReference<>();
+    BlockingQueue<Optional<StreamElement<T>>> queue = new ArrayBlockingQueue<>(100);
+    AtomicReference<StreamElement<T>> current = new AtomicReference<>();
 
     AtomicReference<ObserveHandle> cancel = new AtomicReference<>();
     cancel.set(reader.observePartitions(
@@ -73,7 +73,7 @@ public class BoundedStreamSource implements BoundedDataSource<StreamElement> {
         true,
         partitionObserver(queue)));
 
-    return new BoundedReader<StreamElement>() {
+    return new BoundedReader<StreamElement<T>>() {
 
       @Override
       public void close() throws IOException {
@@ -83,7 +83,7 @@ public class BoundedStreamSource implements BoundedDataSource<StreamElement> {
       @Override
       public boolean hasNext() {
         try {
-          Optional<StreamElement> elem = queue.take();
+          Optional<StreamElement<T>> elem = queue.take();
           if (elem.isPresent()) {
             current.set(elem.get());
             return true;
@@ -95,20 +95,20 @@ public class BoundedStreamSource implements BoundedDataSource<StreamElement> {
       }
 
       @Override
-      public StreamElement next() {
+      public StreamElement<T> next() {
         return current.get();
       }
 
     };
   }
 
-  private LogObserver partitionObserver(
-      BlockingQueue<Optional<StreamElement>> queue) {
+  private LogObserver<T> partitionObserver(
+      BlockingQueue<Optional<StreamElement<T>>> queue) {
 
-    return new LogObserver() {
+    return new LogObserver<T>() {
 
       @Override
-      public boolean onNext(StreamElement ingest, LogObserver.OffsetCommitter confirm) {
+      public boolean onNext(StreamElement<T> ingest, LogObserver.OffsetCommitter confirm) {
 
         try {
           try {
@@ -144,9 +144,9 @@ public class BoundedStreamSource implements BoundedDataSource<StreamElement> {
   }
 
   @Override
-  public List<BoundedDataSource<StreamElement>> split(long desiredSplitBytes) {
+  public List<BoundedDataSource<StreamElement<T>>> split(long desiredSplitBytes) {
     return reader.getPartitions().stream().map(p -> {
-      return new UnsplittableBoundedSource<StreamElement>() {
+      return new UnsplittableBoundedSource<StreamElement<T>>() {
 
         @Override
         public Set<String> getLocations() {
@@ -154,7 +154,7 @@ public class BoundedStreamSource implements BoundedDataSource<StreamElement> {
         }
 
         @Override
-        public BoundedReader<StreamElement> openReader() throws IOException {
+        public BoundedReader<StreamElement<T>> openReader() throws IOException {
           return asBoundedReader(p);
         }
 
@@ -169,7 +169,7 @@ public class BoundedStreamSource implements BoundedDataSource<StreamElement> {
   }
 
   @Override
-  public BoundedReader<StreamElement> openReader() throws IOException {
+  public BoundedReader<StreamElement<T>> openReader() throws IOException {
     throw new UnsupportedOperationException("Not supported.");
   }
 

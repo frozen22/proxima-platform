@@ -23,8 +23,8 @@ import java.net.URI;
  * Abstract implementation of the {@code OnlineAttributeWriter}.
  */
 @Internal
-public abstract class AbstractOnlineAttributeWriter
-    extends AbstractAttributeWriter implements OnlineAttributeWriter {
+public abstract class AbstractOnlineAttributeWriter<T>
+    extends AbstractAttributeWriter<T> implements OnlineAttributeWriter<T> {
 
   protected AbstractOnlineAttributeWriter(EntityDescriptor entityDesc, URI uri) {
     super(entityDesc, uri);

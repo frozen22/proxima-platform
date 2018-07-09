@@ -471,7 +471,7 @@ public class KafkaLogReader extends AbstractStorage
             preWrite.accept(tp, r);
             // in kafka, each entity attribute is separated by `#' from entity key
             int hashPos = key.lastIndexOf("#");
-            KafkaStreamElement ingest = null;
+            KafkaStreamElement<?> ingest = null;
             if (hashPos < 0 || hashPos >= key.length()) {
               log.error("Invalid key in kafka topic: {}", key);
             } else {
@@ -481,7 +481,7 @@ public class KafkaLogReader extends AbstractStorage
               if (!attr.isPresent()) {
                 log.error("Invalid attribute {} in kafka key {}", attribute, key);
               } else {
-                ingest = new KafkaStreamElement(
+                ingest = new KafkaStreamElement<>(
                     getEntityDescriptor(), attr.get(),
                     String.valueOf(r.topic() + "#" + r.partition() + "#" + r.offset()),
                     entityKey, attribute, r.timestamp(), value, r.partition(), r.offset());

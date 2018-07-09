@@ -56,33 +56,39 @@ public interface BatchLogObservable {
 
   /**
    * Observe data stored in given partitions.
+   * @param <T> data type of observed log
    * @param partitions partitions to observe
    * @param attributes attribute descriptors to filter out
    * @param observer the observer by which to consume the data
    */
-  void observe(
+  <T> void observe(
       List<Partition> partitions,
-      List<AttributeDescriptor<?>> attributes,
-      BatchLogObserver observer);
+      List<AttributeDescriptor<? extends T>> attributes,
+      BatchLogObserver<T> observer);
 
   /**
    * Retrieve {@link DataSource} for processing of this {@link BatchLogObservable}.
+   * @param <T> data type of observed log
    * @param attrs attributes to process
    * @return {@link DataSource} for batch processing
    */
-  default DataSource<StreamElement> getSource(List<AttributeDescriptor<?>> attrs) {
+  default <T> DataSource<StreamElement<T>> getSource(
+      List<AttributeDescriptor<? extends T>> attrs) {
+
     return getSource(attrs, Long.MIN_VALUE, Long.MAX_VALUE);
   }
 
   /**
    * Retrieve {@link DataSource} for processing of this {@link BatchLogObservable}.
+   * @param <T> data type of observed log
    * @param attrs attributes to process
    * @param startStamp start stamp (inclusive)
    * @param endStamp end stamp (exclusive)
    * @return {@link DataSource} for batch processing
    */
-  default DataSource<StreamElement> getSource(
-      List<AttributeDescriptor<?>> attrs, long startStamp, long endStamp) {
+  default <T> DataSource<StreamElement<T>> getSource(
+      List<AttributeDescriptor<? extends T>> attrs,
+      long startStamp, long endStamp) {
 
     return BatchSource.of(this, attrs, startStamp, endStamp);
   }

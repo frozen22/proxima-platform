@@ -24,7 +24,7 @@ import java.util.Map;
  * must implement. The class also has to have a default (empty) constructor.
  */
 @FunctionalInterface
-public interface Partitioner extends Serializable {
+public interface Partitioner<T> extends Serializable {
 
   /**
    * Retrieve partition ID for the specified ingest.
@@ -33,7 +33,7 @@ public interface Partitioner extends Serializable {
    * @param element element to calculate partition for
    * @return ID of partition (can be negative)
    */
-  int getPartitionId(StreamElement element);
+  int getPartitionId(StreamElement<T> element);
 
   /**
    * Setup the partitioner (if needed).

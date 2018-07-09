@@ -31,7 +31,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A bounded {@link CommitLogReader} containing predefined data.
@@ -39,13 +38,13 @@ import java.util.concurrent.atomic.AtomicInteger;
  * This is very simplistic implementation which just pushes all data
  * to the provided observer.
  */
-public class ListCommitLog implements CommitLogReader {
+public class ListCommitLog<T> implements CommitLogReader {
 
-  public static ListCommitLog of(List<StreamElement> data, Context context) {
+  public static <T> ListCommitLog<T> of(List<StreamElement<T>> data, Context context) {
     return new ListCommitLog(data, context);
   }
 
-  private final List<StreamElement> data;
+  private final List<StreamElement<T>> data;
   private final Context context;
   private transient ExecutorService executor;
 
@@ -78,7 +77,7 @@ public class ListCommitLog implements CommitLogReader {
 
   }
 
-  private ListCommitLog(List<StreamElement> data, Context context) {
+  private ListCommitLog(List<StreamElement<T>> data, Context context) {
     this.data = Lists.newArrayList(data);
     this.context = context;
   }
@@ -110,17 +109,17 @@ public class ListCommitLog implements CommitLogReader {
   }
 
   @Override
-  public ObserveHandle observePartitions(
+  public <T> ObserveHandle observePartitions(
       String name, Collection<Partition> partitions,
-      Position position, boolean stopAtCurrent, LogObserver observer) {
+      Position position, boolean stopAtCurrent, LogObserver<T> observer) {
 
     return observe(name, position, observer);
   }
 
   @Override
-  public ObserveHandle observeBulk(
+  public <T> ObserveHandle observeBulk(
       String name, Position position, boolean stopAtCurrent,
-      BulkLogObserver observer) {
+      BulkLogObserver<T> observer) {
 
     observer.onRestart(Arrays.asList(() -> () -> 0));
     pushTo(element -> observer.onNext(element, () -> 0, (succ, exc) -> {
@@ -132,16 +131,16 @@ public class ListCommitLog implements CommitLogReader {
   }
 
   @Override
-  public ObserveHandle observeBulkPartitions(
+  public <T> ObserveHandle observeBulkPartitions(
       String name, Collection<Partition> partitions,
-      Position position, boolean stopAtCurrent, BulkLogObserver observer) {
+      Position position, boolean stopAtCurrent, BulkLogObserver<T> observer) {
 
     return observeBulk(name, position, observer);
   }
 
   @Override
-  public ObserveHandle observeBulkOffsets(
-      Collection<Offset> offsets, BulkLogObserver observer) {
+  public <T> ObserveHandle observeBulkOffsets(
+      Collection<Offset> offsets, BulkLogObserver<T> observer) {
 
     return observeBulk(null, null, observer);
   }
@@ -151,10 +150,11 @@ public class ListCommitLog implements CommitLogReader {
     // nop
   }
 
+  @SuppressWarnings({"unchecked", "rawtypes"})
   private void pushTo(
       Consumer<StreamElement> consumer,
       Runnable finish) {
-    AtomicInteger toPush = new AtomicInteger(data.size());
+
     executor().execute(() -> {
       data.forEach(consumer::accept);
       finish.run();

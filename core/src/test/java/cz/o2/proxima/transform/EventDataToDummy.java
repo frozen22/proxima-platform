@@ -24,7 +24,7 @@ import cz.o2.proxima.storage.StreamElement;
 /**
  * Transform {@code event.data} to {@code dummy.wildcard.<stamp>}.
  */
-public class EventDataToDummy implements Transformation {
+public class EventDataToDummy implements Transformation<Object> {
 
   EntityDescriptor target;
   AttributeDescriptor targetAttr;
@@ -43,7 +43,7 @@ public class EventDataToDummy implements Transformation {
 
   @Override
   public int apply(
-      StreamElement input, Collector<StreamElement> collector) {
+      StreamElement<Object> input, Collector<StreamElement> collector) {
     collector.collect(StreamElement.update(
         target, targetAttr, input.getUuid(),
         input.getKey(), prefix + input.getStamp(),

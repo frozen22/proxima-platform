@@ -62,10 +62,12 @@ public class MultiAccessBuilderTest {
   public void testMultiAttributes() {
     EntityDescriptor gateway = repo.findEntity("gateway").orElseThrow(
         () -> new IllegalStateException("Missing entity gateway"));
-    AttributeDescriptor<?> armed = gateway.findAttribute("armed").orElseThrow(
-        () -> new IllegalStateException("Missing attribute armed in gateway"));
-    AttributeDescriptor<?> device = gateway.findAttribute("device.*").orElseThrow(
-        () -> new IllegalStateException("Missing attribute davice.* in gateway"));
+    AttributeDescriptor<byte[]> armed = gateway.<byte[]>findAttribute("armed")
+        .orElseThrow(() -> new IllegalStateException(
+            "Missing attribute armed in gateway"));
+    AttributeDescriptor<byte[]> device = gateway.<byte[]>findAttribute("device.*")
+        .orElseThrow(() -> new IllegalStateException(
+            "Missing attribute davice.* in gateway"));
     RandomAccessReader base = repo.getAllFamilies()
         .filter(af -> af.getName().equals("gateway-storage-steam"))
         .findAny()
@@ -96,9 +98,9 @@ public class MultiAccessBuilderTest {
   public void testSingleFamily() {
     EntityDescriptor gateway = repo.findEntity("gateway").orElseThrow(
         () -> new IllegalStateException("Missing entity gateway"));
-    AttributeDescriptor<?> armed = gateway.findAttribute("armed").orElseThrow(
+    AttributeDescriptor<byte[]> armed = gateway.<byte[]>findAttribute("armed").orElseThrow(
         () -> new IllegalStateException("Missing attribute armed in gateway"));
-    AttributeDescriptor<?> device = gateway.findAttribute("device.*").orElseThrow(
+    AttributeDescriptor<byte[]> device = gateway.<byte[]>findAttribute("device.*").orElseThrow(
         () -> new IllegalStateException("Missing attribute davice.* in gateway"));
     AttributeFamilyDescriptor family = repo.getAllFamilies()
         .filter(af -> af.getName().equals("gateway-storage-steam"))
@@ -131,12 +133,15 @@ public class MultiAccessBuilderTest {
         () -> new IllegalStateException("Missing entity gateway"));
     EntityDescriptor dummy = repo.findEntity("dummy").orElseThrow(
         () -> new IllegalStateException("Missing entity dummy"));
-    AttributeDescriptor<?> armed = gateway.findAttribute("armed").orElseThrow(
-        () -> new IllegalStateException("Missing attribute armed in gateway"));
-    AttributeDescriptor<?> device = gateway.findAttribute("device.*").orElseThrow(
-        () -> new IllegalStateException("Missing attribute davice.* in gateway"));
-    AttributeDescriptor<Object> data = dummy.findAttribute("data").orElseThrow(
-        () -> new IllegalStateException("Missing attribute data in dummy"));
+    AttributeDescriptor<byte[]> armed = gateway.<byte[]>findAttribute("armed")
+        .orElseThrow(() -> new IllegalStateException(
+            "Missing attribute armed in gateway"));
+    AttributeDescriptor<byte[]> device = gateway.<byte[]>findAttribute("device.*")
+        .orElseThrow(() -> new IllegalStateException(
+            "Missing attribute davice.* in gateway"));
+    AttributeDescriptor<Object> data = dummy.findAttribute("data")
+        .orElseThrow(() -> new IllegalStateException(
+            "Missing attribute data in dummy"));
     AttributeFamilyDescriptor family = repo.getAllFamilies()
         .filter(af -> af.getName().equals("gateway-storage-steam"))
         .findAny()
@@ -178,8 +183,9 @@ public class MultiAccessBuilderTest {
   public void testSingleFamilyScanWildcard() {
     EntityDescriptor gateway = repo.findEntity("gateway").orElseThrow(
         () -> new IllegalStateException("Missing entity gateway"));
-    AttributeDescriptor<?> device = gateway.findAttribute("device.*").orElseThrow(
-        () -> new IllegalStateException("Missing attribute davice.* in gateway"));
+    AttributeDescriptor<Object> device = gateway.findAttribute("device.*")
+        .orElseThrow(() -> new IllegalStateException(
+            "Missing attribute davice.* in gateway"));
     AttributeFamilyDescriptor family = repo.getAllFamilies()
         .filter(af -> af.getName().equals("gateway-storage-steam"))
         .findAny()
@@ -206,9 +212,9 @@ public class MultiAccessBuilderTest {
   public void testMultiAttributesScanAll() {
     EntityDescriptor gateway = repo.findEntity("gateway").orElseThrow(
         () -> new IllegalStateException("Missing entity gateway"));
-    AttributeDescriptor<?> armed = gateway.findAttribute("armed").orElseThrow(
+    AttributeDescriptor<Object> armed = gateway.findAttribute("armed").orElseThrow(
         () -> new IllegalStateException("Missing attribute armed in gateway"));
-    AttributeDescriptor<?> device = gateway.findAttribute("device.*").orElseThrow(
+    AttributeDescriptor<Object> device = gateway.findAttribute("device.*").orElseThrow(
         () -> new IllegalStateException("Missing attribute davice.* in gateway"));
     RandomAccessReader base = repo.getAllFamilies()
         .filter(af -> af.getName().equals("gateway-storage-steam"))
@@ -238,9 +244,9 @@ public class MultiAccessBuilderTest {
   public void testMultiAttributesScanAllOffset() {
     EntityDescriptor gateway = repo.findEntity("gateway").orElseThrow(
         () -> new IllegalStateException("Missing entity gateway"));
-    AttributeDescriptor<?> armed = gateway.findAttribute("armed").orElseThrow(
+    AttributeDescriptor<Object> armed = gateway.findAttribute("armed").orElseThrow(
         () -> new IllegalStateException("Missing attribute armed in gateway"));
-    AttributeDescriptor<?> device = gateway.findAttribute("device.*").orElseThrow(
+    AttributeDescriptor<Object> device = gateway.findAttribute("device.*").orElseThrow(
         () -> new IllegalStateException("Missing attribute davice.* in gateway"));
     RandomAccessReader base = repo.getAllFamilies()
         .filter(af -> af.getName().equals("gateway-storage-steam"))

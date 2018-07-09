@@ -77,10 +77,10 @@ public class CommitLogReaderTest {
   public void testObserveSimple() throws InterruptedException {
     List<StreamElement> received = new ArrayList<>();
     CountDownLatch latch = new CountDownLatch(1);
-    reader.observe("test", new LogObserver() {
+    reader.observe("test", new LogObserver<Object>() {
 
       @Override
-      public boolean onNext(StreamElement ingest, LogObserver.OffsetCommitter context) {
+      public boolean onNext(StreamElement<Object> ingest, OffsetCommitter context) {
         received.add(ingest);
         latch.countDown();
         context.confirm();
@@ -108,10 +108,10 @@ public class CommitLogReaderTest {
   public void testObserveWithError() throws InterruptedException {
     CountDownLatch latch = new CountDownLatch(1);
     AtomicReference<Throwable> caught = new AtomicReference<>();
-    reader.observe("test", new LogObserver() {
+    reader.observe("test", new LogObserver<Object>() {
 
       @Override
-      public boolean onNext(StreamElement ingest, LogObserver.OffsetCommitter context) {
+      public boolean onNext(StreamElement<Object> ingest, OffsetCommitter context) {
         throw new RuntimeException("fail");
       }
 
@@ -139,11 +139,11 @@ public class CommitLogReaderTest {
     List<StreamElement> received = new ArrayList<>();
     CountDownLatch latch = new CountDownLatch(1);
     AtomicInteger count = new AtomicInteger();
-    RetryableLogObserver observer = new RetryableLogObserver(2, "test", reader) {
+    RetryableLogObserver observer = new RetryableLogObserver<Object>(2, "test", reader) {
 
       @Override
       protected boolean onNextInternal(
-          StreamElement ingest, LogObserver.OffsetCommitter confirm) {
+          StreamElement<Object> ingest, OffsetCommitter confirm) {
 
         if (count.incrementAndGet() == 0) {
           throw new RuntimeException("fail");
@@ -175,10 +175,10 @@ public class CommitLogReaderTest {
   public void testBulkObserve() throws InterruptedException {
     List<StreamElement> received = new ArrayList<>();
     CountDownLatch latch = new CountDownLatch(2);
-    reader.observeBulk("test", new BulkLogObserver() {
+    reader.observeBulk("test", new BulkLogObserver<Object>() {
 
       @Override
-      public boolean onNext(StreamElement ingest, BulkLogObserver.OffsetCommitter context) {
+      public boolean onNext(StreamElement<Object> ingest, OffsetCommitter context) {
         received.add(ingest);
         latch.countDown();
         if (received.size() == 2) {

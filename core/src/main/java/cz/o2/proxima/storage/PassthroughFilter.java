@@ -21,12 +21,12 @@ import cz.o2.proxima.annotations.Stable;
  * A {@code StorageFilter} passing in all values.
  */
 @Stable
-public class PassthroughFilter implements StorageFilter {
+public class PassthroughFilter<T> implements StorageFilter<T> {
 
   public static final PassthroughFilter INSTANCE = new PassthroughFilter();
 
   @Override
-  public boolean apply(StreamElement ingest) {
+  public boolean apply(StreamElement<T> ingest) {
     return true;
   }
 

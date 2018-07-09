@@ -23,8 +23,8 @@ import java.net.URI;
  * Abstract implementation of {@code BulkAttributeWriter}.
  */
 @Internal
-public abstract class AbstractBulkAttributeWriter
-    extends AbstractAttributeWriter implements BulkAttributeWriter {
+public abstract class AbstractBulkAttributeWriter<T>
+    extends AbstractAttributeWriter<T> implements BulkAttributeWriter<T> {
 
   public AbstractBulkAttributeWriter(EntityDescriptor entityDesc, URI uri) {
     super(entityDesc, uri);

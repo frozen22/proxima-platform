@@ -55,12 +55,13 @@ public interface CommitLogReader extends Closeable, Serializable {
    * If multiple observers share the same name, then the ingests
    * are load-balanced between them (in an undefined manner).
    * This is a non blocking call.
+   * @param <T> data type of the observed stream
    * @param name identifier of the consumer
    * @param position the position to seek for in the commit log
    * @param observer the observer to subscribe to the commit log
    * @return {@link ObserveHandle} to asynchronously cancel the observation
    */
-  ObserveHandle observe(String name, Position position, LogObserver observer);
+  <T> ObserveHandle observe(String name, Position position, LogObserver<T> observer);
 
   /**
    * Subscribe observer by name to the commit log and read the newest data.
@@ -69,11 +70,12 @@ public interface CommitLogReader extends Closeable, Serializable {
    * If multiple observers share the same name, then the ingests
    * are load-balanced between them (in an undefined manner).
    * This is a non blocking call.
+   * @param <T> data type of the observed stream
    * @param name identifier of the consumer
    * @param observer the observer to subscribe to the commit log
    * @return {@link ObserveHandle} to asynchronously cancel the observation
    */
-  default ObserveHandle observe(String name, LogObserver observer) {
+  default <T> ObserveHandle observe(String name, LogObserver<T> observer) {
     return observe(name, Position.NEWEST, observer);
   }
 
@@ -82,6 +84,7 @@ public interface CommitLogReader extends Closeable, Serializable {
    * If you use this call then the reader stops being automatically
    * load balanced and the set of partitions can only be changed
    * by call to this method again.
+   * @param <T> data type of the observed stream
    * @param name name of the observer
    * @param partitions the list of partitions to subscribe to
    * @param position the position to seek to in the partitions
@@ -90,12 +93,12 @@ public interface CommitLogReader extends Closeable, Serializable {
    * @param observer the observer to subscribe to the partitions
    * @return {@link ObserveHandle} to asynchronously cancel the observation
    */
-  ObserveHandle observePartitions(
+  <T> ObserveHandle observePartitions(
       String name,
       Collection<Partition> partitions,
       Position position,
       boolean stopAtCurrent,
-      LogObserver observer);
+      LogObserver<T> observer);
 
 
   /**
@@ -103,6 +106,7 @@ public interface CommitLogReader extends Closeable, Serializable {
    * If you use this call then the reader stops being automatically
    * load balanced and the set of partitions can only be changed
    * by call to this method again.
+   * @param <T> data type of the observed stream
    * @param partitions the list of partitions to subscribe to
    * @param position the position to seek to in the partitions
    * @param stopAtCurrent when {@code true} then stop the observer as soon
@@ -110,11 +114,11 @@ public interface CommitLogReader extends Closeable, Serializable {
    * @param observer the observer to subscribe to the partitions
    * @return {@link ObserveHandle} to asynchronously cancel the observation
    */
-  default ObserveHandle observePartitions(
+  default <T> ObserveHandle observePartitions(
       Collection<Partition> partitions,
       Position position,
       boolean stopAtCurrent,
-      LogObserver observer) {
+      LogObserver<T> observer) {
 
     return observePartitions(
         "unnamed-proxima-bulk-consumer-" + UUID.randomUUID().toString(),
@@ -126,15 +130,16 @@ public interface CommitLogReader extends Closeable, Serializable {
    * If you use this call then the reader stops being automatically
    * load balanced and the set of partitions can only be changed
    * by call to this method again.
+   * @param <T> data type of the observed stream
    * @param partitions the list of partitions to subscribe to
    * @param position the position to seek to in the partitions
    * @param observer the observer to subscribe to the partitions
    * @return {@link ObserveHandle} to asynchronously cancel the observation
    */
-  default ObserveHandle observePartitions(
+  default <T> ObserveHandle observePartitions(
       Collection<Partition> partitions,
       Position position,
-      LogObserver observer) {
+      LogObserver<T> observer) {
 
     return observePartitions(partitions, position, false, observer);
   }
@@ -145,13 +150,14 @@ public interface CommitLogReader extends Closeable, Serializable {
    * If you use this call then the reader stops being automatically
    * load balanced and the set of partitions can only be changed
    * by call to this method again.
+   * @param <T> data type of the observed stream
    * @param partitions the partitions to subscribe to
    * @param observer the observer to subscribe to the given partitions
    * @return {@link ObserveHandle} to asynchronously cancel the observation
    */
-  default ObserveHandle observePartitions(
+  default <T> ObserveHandle observePartitions(
       Collection<Partition> partitions,
-      LogObserver observer) {
+      LogObserver<T> observer) {
 
     return observePartitions(partitions, Position.NEWEST, observer);
   }
@@ -162,6 +168,7 @@ public interface CommitLogReader extends Closeable, Serializable {
    * are not committed one-by-one, but in a bulks, where all elements in a bulk
    * are committed at once. This is useful for micro-batching approach of
    * data processing.
+   * @param <T> data type of the observed stream
    * @param name name of the observer
    * @param position the position to seek to in the partitions
    * @param stopAtCurrent when {@code true} then stop the observer as soon
@@ -169,11 +176,11 @@ public interface CommitLogReader extends Closeable, Serializable {
    * @param observer the observer to subscribe
    * @return {@link ObserveHandle} to asynchronously cancel the observation
    */
-  ObserveHandle observeBulk(
+  <T> ObserveHandle observeBulk(
       String name,
       Position position,
       boolean stopAtCurrent,
-      BulkLogObserver observer);
+      BulkLogObserver<T> observer);
 
 
   /**
@@ -181,15 +188,16 @@ public interface CommitLogReader extends Closeable, Serializable {
    * are not committed one-by-one, but in a bulks, where all elements in a bulk
    * are committed at once. This is useful for micro-batching approach of
    * data processing.
+   * @param <T> data type of the observed stream
    * @param name name of the observer
    * @param position the position to seek to in the partitions
    * @param observer the observer to subscribe
    * @return {@link ObserveHandle} to asynchronously cancel the observation
    */
-  default ObserveHandle observeBulk(
+  default <T> ObserveHandle observeBulk(
       String name,
       Position position,
-      BulkLogObserver observer) {
+      BulkLogObserver<T> observer) {
 
     return observeBulk(name, position, false, observer);
   }
@@ -200,30 +208,32 @@ public interface CommitLogReader extends Closeable, Serializable {
    * That implies that elements are not committed one-by-one, but in a bulks,
    * where all elements in a bulk are committed at once. This is useful for
    * micro-batching approach of data processing.
+   * @param <T> data type of the observed stream
    * @param name name of the observer
    * @param observer the observer to subscribe
    * @return {@link ObserveHandle} to asynchronously cancel the observation
    */
-  default ObserveHandle observeBulk(
+  default <T> ObserveHandle observeBulk(
       String name,
-      BulkLogObserver observer) {
+      BulkLogObserver<T> observer) {
 
     return observeBulk(name, Position.NEWEST, observer);
   }
 
   /**
    * Subscribe to given partitions in a bulk fashion.
+   * @param <T> data type of the observed stream
    * @param name name of the observer
    * @param partitions the partitions to subscribe to
    * @param position the position to seek to in the partitions
    * @param observer the observer to subscribe to the partitions
    * @return {@link ObserveHandle} to asynchronously cancel the observation
    */
-  default ObserveHandle observeBulkPartitions(
+  default <T> ObserveHandle observeBulkPartitions(
       String name,
       Collection<Partition> partitions,
       Position position,
-      BulkLogObserver observer) {
+      BulkLogObserver<T> observer) {
 
     return observeBulkPartitions(name, partitions, position, false, observer);
   }
@@ -231,6 +241,7 @@ public interface CommitLogReader extends Closeable, Serializable {
 
   /**
    * Subscribe to given partitions in a bulk fashion.
+   * @param <T> data type of the observed stream
    * @param name name of the observer
    * @param partitions the partitions to subscribe to
    * @param position the position to seek to in the partitions
@@ -239,15 +250,16 @@ public interface CommitLogReader extends Closeable, Serializable {
    * @param observer the observer to subscribe to the partitions
    * @return {@link ObserveHandle} to asynchronously cancel the observation
    */
-  ObserveHandle observeBulkPartitions(
+  <T> ObserveHandle observeBulkPartitions(
       String name,
       Collection<Partition> partitions,
       Position position,
       boolean stopAtCurrent,
-      BulkLogObserver observer);
+      BulkLogObserver<T> observer);
 
   /**
    * Subscribe to given partitions in a bulk fashion.
+   * @param <T> data type of the observed stream
    * @param partitions the partitions to subscribe to
    * @param position the position to seek to in the partitions
    * @param stopAtCurrent when {@code true} then stop the observer as soon
@@ -255,11 +267,11 @@ public interface CommitLogReader extends Closeable, Serializable {
    * @param observer the observer to subscribe to the partitions
    * @return {@link ObserveHandle} to asynchronously cancel the observation
    */
-  default ObserveHandle observeBulkPartitions(
+  default <T> ObserveHandle observeBulkPartitions(
       Collection<Partition> partitions,
       Position position,
       boolean stopAtCurrent,
-      BulkLogObserver observer) {
+      BulkLogObserver<T> observer) {
 
     return observeBulkPartitions(
         "unnamed-proxima-bulk-consumer-" + UUID.randomUUID().toString(),
@@ -271,15 +283,16 @@ public interface CommitLogReader extends Closeable, Serializable {
 
   /**
    * Subscribe to given partitions in a bulk fashion.
+   * @param <T> data type of the observed stream
    * @param partitions the partitions to subscribe to
    * @param position the position to seek to in the partitions
    * @param observer the observer to subscribe to the partitions
    * @return {@link ObserveHandle} to asynchronously cancel the observation
    */
-  default ObserveHandle observeBulkPartitions(
+  default <T> ObserveHandle observeBulkPartitions(
       Collection<Partition> partitions,
       Position position,
-      BulkLogObserver observer) {
+      BulkLogObserver<T> observer) {
 
     return observeBulkPartitions(
         partitions,
@@ -294,21 +307,23 @@ public interface CommitLogReader extends Closeable, Serializable {
    * type of consumption is to first use {@link CommitLogReader#observeBulkPartitions}, observe
    * for some time, than interrupt the consumption, store associated offsets
    * and resume the consumption from these offsets later
+   * @param <T> data type of the observed stream
    * @param offsets the @{link Offset}s to subscribe to
    * @param observer the observer to subscribe to the offsets
    * @return {@link ObserveHandle} to asynchronously cancel the observation
    */
-  ObserveHandle observeBulkOffsets(
+  <T> ObserveHandle observeBulkOffsets(
       Collection<Offset> offsets,
-      BulkLogObserver observer);
+      BulkLogObserver<T> observer);
 
 
   /**
    * Retrieve source from this reader that can be used in Euphoria processing.
+   * @param <T> data type of input elements
    * @param position where to start reading
    * @return {@link DataSource} for further processing
    */
-  default DataSource<StreamElement> getSource(Position position) {
+  default <T> DataSource<StreamElement<T>> getSource(Position position) {
 
     return UnboundedStreamSource.of(this, position);
   }
@@ -317,9 +332,10 @@ public interface CommitLogReader extends Closeable, Serializable {
    * Retrieve source from this reader that can be used in Euphoria processing.
    * The source reads data from newest position and continues processing
    * as new data is incoming.
+   * @param <T> data type of input elements
    * @return {@link DataSource} for further processing
    */
-  default DataSource<StreamElement> getSource() {
+  default <T> DataSource<StreamElement<T>> getSource() {
     return getSource(Position.NEWEST);
   }
 

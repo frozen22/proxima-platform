@@ -45,6 +45,7 @@ public class DatasetUtils {
   /**
    * Retrieve {@link Dataset} that contains given attributes with given read
    * specification.
+   * @param <T> data type of resulting stream
    * @param flow flow to add this {@link Dataset} to
    * @param repo the repository
    * @param position position where to start reading
@@ -52,25 +53,27 @@ public class DatasetUtils {
    * @param attrs the attributes to read
    * @return {@link Dataset} that contains given attributes
    */
-  public static Dataset<StreamElement> of(
+  @SafeVarargs
+  public static <T> Dataset<StreamElement<T>> of(
       Flow flow,
       Repository repo,
       Position position,
       boolean stopAtCurrent,
-      AttributeDescriptor<?>... attrs) {
+      AttributeDescriptor<? extends T>... attrs) {
 
-    return stream(flow, repo, position, asSet(attrs), stopAtCurrent);
+    return stream(
+        flow, repo, position, DatasetUtils.<T>asSet(attrs), stopAtCurrent);
   }
 
   @SuppressWarnings("unchecked")
-  private static Dataset<StreamElement> batch(
+  private static <T> Dataset<StreamElement<T>> batch(
       Flow flow,
       Repository repo,
       Position position,
-      Set<AttributeDescriptor> attrs) {
+      Set<AttributeDescriptor<? extends T>> attrs) {
 
     long now = System.currentTimeMillis();
-    Map<BatchLogObservable, List<AttributeDescriptor<?>>> readers = new HashMap<>();
+    Map<BatchLogObservable, List<AttributeDescriptor<? extends T>>> readers = new HashMap<>();
     for (AttributeDescriptor a : attrs) {
       AttributeFamilyDescriptor afd = repo.getFamiliesForAttribute(a).stream()
           .filter(af -> af.getAccess().canReadBatchUpdates())
@@ -85,11 +88,11 @@ public class DatasetUtils {
       });
     }
     attrs.stream().collect(Collectors.toList());
-    List<Dataset<StreamElement>> inputs = readers.entrySet().stream()
+    List<Dataset<StreamElement<T>>> inputs = readers.entrySet().stream()
         .map(e -> BatchSource.of(e.getKey(), e.getValue(), Long.MIN_VALUE, now))
         .map(s -> flow.createInput(s))
         .collect(Collectors.toList());
-    Dataset<StreamElement> united = Union.of(inputs)
+    Dataset<StreamElement<T>> united = Union.of(inputs)
         .output();
     return Filter.of(united)
         .by(e -> attrs.contains(e.getAttributeDescriptor()))
@@ -97,28 +100,28 @@ public class DatasetUtils {
   }
 
   @SuppressWarnings("unchecked")
-  private static Dataset<StreamElement> stream(
+  private static <T> Dataset<StreamElement<T>> stream(
       Flow flow,
       Repository repo,
       Position position,
-      Set<AttributeDescriptor> attrs,
+      Set<AttributeDescriptor<? extends T>> attrs,
       boolean stopAtCurrent) {
 
     Set<CommitLogReader> readers = new HashSet<>();
-    for (AttributeDescriptor a : attrs) {
+    for (AttributeDescriptor<? extends T> a : attrs) {
       readers.add(repo.getFamiliesForAttribute(a).stream()
           .filter(af -> af.getAccess().canReadCommitLog())
           .map(af -> af.getCommitLogReader().get())
           .findAny()
           .orElseThrow(() -> new IllegalArgumentException("Attribute " + a + " has no commit log")));
     }
-    List<Dataset<StreamElement>> inputs = readers.stream()
+    List<Dataset<StreamElement<T>>> inputs = readers.stream()
         .map(r -> stopAtCurrent
-            ? BoundedStreamSource.of(r, position)
-            : UnboundedStreamSource.of(r, position))
+            ? BoundedStreamSource.<T>of(r, position)
+            : UnboundedStreamSource.<T>of(r, position))
         .map(s -> flow.createInput(s))
         .collect(Collectors.toList());
-    final Dataset<StreamElement> united;
+    final Dataset<StreamElement<T>> united;
     if (inputs.size() > 1) {
       united = Union.of(inputs).output();
     } else {
@@ -130,7 +133,9 @@ public class DatasetUtils {
   }
 
   @SuppressWarnings("unchecked")
-  private static Set<AttributeDescriptor> asSet(AttributeDescriptor<?>[] attrs) {
+  private static <T> Set<AttributeDescriptor<? extends T>> asSet(
+      AttributeDescriptor<? extends T>[] attrs) {
+
     return Arrays.stream(attrs).collect(Collectors.toSet());
   }
 

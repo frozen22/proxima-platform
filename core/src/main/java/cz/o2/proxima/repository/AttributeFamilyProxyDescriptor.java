@@ -59,6 +59,7 @@ class AttributeFamilyProxyDescriptor extends AttributeFamilyDescriptor {
   AttributeFamilyProxyDescriptor(
       AttributeProxyDescriptorImpl<?> targetAttribute,
       AttributeFamilyDescriptor targetFamily) {
+
     super(
         "proxy::" + targetAttribute.getName() + "::" + targetFamily.getName(),
         targetFamily.getType(),
@@ -75,27 +76,28 @@ class AttributeFamilyProxyDescriptor extends AttributeFamilyDescriptor {
         null);
   }
 
-  private static OnlineAttributeWriter getWriter(
+  private static OnlineAttributeWriter<Object> getWriter(
       AttributeProxyDescriptorImpl<?> targetAttribute,
       AttributeFamilyDescriptor targetFamily) {
 
-    Optional<AttributeWriterBase> w = targetFamily.getWriter();
+    Optional<AttributeWriterBase<?>> w = targetFamily.getWriter();
     if (!w.isPresent() || !(w.get() instanceof OnlineAttributeWriter)) {
       return null;
     }
-    OnlineAttributeWriter writer = w.get().online();
+    OnlineAttributeWriter<?> writer = w.get().online();
     final URI uri = getProxyURI(writer.getURI(), targetFamily);
-    return new OnlineAttributeWriter() {
+    return new OnlineAttributeWriter<Object>() {
 
       @Override
       public void rollback() {
         writer.rollback();
       }
 
+      @SuppressWarnings("unchecked")
       @Override
-      public void write(StreamElement data, CommitCallback statusCallback) {
+      public void write(StreamElement<Object> data, CommitCallback statusCallback) {
         writer.write(
-            transformToRaw(data, targetAttribute),
+            (StreamElement) transformToRaw(data, targetAttribute),
             statusCallback);
       }
 
@@ -129,19 +131,19 @@ class AttributeFamilyProxyDescriptor extends AttributeFamilyDescriptor {
       }
 
       @Override
-      public ObserveHandle observe(
+      public <T> ObserveHandle observe(
           String name,
-          Position position, LogObserver observer) {
+          Position position, LogObserver<T> observer) {
 
         return reader.observe(
             name, position, wrapTransformed(targetAttribute, observer));
       }
 
       @Override
-      public ObserveHandle observePartitions(
+      public <T> ObserveHandle observePartitions(
           String name,
           Collection<Partition> partitions, Position position,
-          boolean stopAtCurrent, LogObserver observer) {
+          boolean stopAtCurrent, LogObserver<T> observer) {
 
         return reader.observePartitions(
             name, partitions, position, stopAtCurrent,
@@ -149,9 +151,9 @@ class AttributeFamilyProxyDescriptor extends AttributeFamilyDescriptor {
       }
 
       @Override
-      public ObserveHandle observePartitions(
+      public <T> ObserveHandle observePartitions(
           Collection<Partition> partitions, Position position,
-          boolean stopAtCurrent, LogObserver observer) {
+          boolean stopAtCurrent, LogObserver<T> observer) {
 
         return reader.observePartitions(
             partitions, position, stopAtCurrent,
@@ -159,9 +161,9 @@ class AttributeFamilyProxyDescriptor extends AttributeFamilyDescriptor {
       }
 
       @Override
-      public ObserveHandle observeBulk(
+      public <T> ObserveHandle observeBulk(
           String name, Position position, boolean stopAtCurrent,
-          BulkLogObserver observer) {
+          BulkLogObserver<T> observer) {
 
         return reader.observeBulk(
             name, position, stopAtCurrent, wrapTransformed(observer));
@@ -173,31 +175,31 @@ class AttributeFamilyProxyDescriptor extends AttributeFamilyDescriptor {
       }
 
       @Override
-      public ObserveHandle observeBulkPartitions(
+      public <T> ObserveHandle observeBulkPartitions(
           Collection<Partition> partitions,
           Position position,
           boolean stopAtCurrent,
-          BulkLogObserver observer) {
+          BulkLogObserver<T> observer) {
 
         return reader.observeBulkPartitions(
             partitions, position, stopAtCurrent, wrapTransformed(observer));
       }
 
       @Override
-      public ObserveHandle observeBulkPartitions(
+      public <T> ObserveHandle observeBulkPartitions(
           String name,
           Collection<Partition> partitions,
           Position position,
           boolean stopAtCurrent,
-          BulkLogObserver observer) {
+          BulkLogObserver<T> observer) {
 
         return reader.observeBulkPartitions(
             name, partitions, position, stopAtCurrent, wrapTransformed(observer));
       }
 
       @Override
-      public ObserveHandle observeBulkOffsets(
-          Collection<Offset> offsets, BulkLogObserver observer) {
+      public <T> ObserveHandle observeBulkOffsets(
+          Collection<Offset> offsets, BulkLogObserver<T> observer) {
 
         return reader.observeBulkOffsets(offsets, wrapTransformed(observer));
       }
@@ -222,10 +224,10 @@ class AttributeFamilyProxyDescriptor extends AttributeFamilyDescriptor {
       }
 
       @Override
-      public void observe(
+      public <T> void observe(
           List<Partition> partitions,
-          List<AttributeDescriptor<?>> attributes,
-          BatchLogObserver observer) {
+          List<AttributeDescriptor<? extends T>> attributes,
+          BatchLogObserver<T> observer) {
 
         reader.observe(partitions, attributes, wrapTransformed(observer));
       }
@@ -329,18 +331,18 @@ class AttributeFamilyProxyDescriptor extends AttributeFamilyDescriptor {
       }
 
       @Override
-      public <T> Dataset<T> observePartitions(
+      public <IN, OUT> Dataset<OUT> observePartitions(
           Flow flow,
           Collection<Partition> partitions,
-          PartitionedLogObserver<T> observer) {
+          PartitionedLogObserver<IN, OUT> observer) {
 
         return view.observePartitions(flow, partitions, wrapTransformed(
             targetAttribute, observer));
       }
 
       @Override
-      public <T> Dataset<T> observe(
-          Flow flow, String name, PartitionedLogObserver<T> observer) {
+      public <IN, OUT> Dataset<OUT> observe(
+          Flow flow, String name, PartitionedLogObserver<IN, OUT> observer) {
 
         return view.observe(flow, name, wrapTransformed(
             targetAttribute, observer));
@@ -354,23 +356,25 @@ class AttributeFamilyProxyDescriptor extends AttributeFamilyDescriptor {
     };
   }
 
+  @SuppressWarnings("unchecked")
   private static <T> PartitionedCachedView getPartitionedCachedView(
       AttributeProxyDescriptorImpl<T> targetAttribute,
       AttributeFamilyDescriptor targetFamily) {
 
-    Optional<PartitionedCachedView> target = targetFamily.getPartitionedCachedView();
+    Optional<PartitionedCachedView<Object>> target;
+    target = (Optional) targetFamily.getPartitionedCachedView();
     if (!target.isPresent()) {
       return null;
     }
-    PartitionedCachedView view = target.get();
+    PartitionedCachedView<Object> view = target.get();
     final URI uri = getProxyURI(view.getURI(), targetFamily);
 
-    return new PartitionedCachedView() {
+    return new PartitionedCachedView<Object>() {
 
       @Override
       public void assign(
           Collection<Partition> partitions,
-          BiConsumer<StreamElement, Pair<Long, Object>> updateCallback) {
+          BiConsumer<StreamElement<Object>, Pair<Long, Object>> updateCallback) {
 
         view.assign(partitions, updateCallback);
       }
@@ -446,7 +450,7 @@ class AttributeFamilyProxyDescriptor extends AttributeFamilyDescriptor {
       }
 
       @Override
-      public void write(StreamElement data, CommitCallback statusCallback) {
+      public void write(StreamElement<Object> data, CommitCallback statusCallback) {
         view.write(transformToRaw(data, targetAttribute), statusCallback);
       }
 
@@ -459,14 +463,14 @@ class AttributeFamilyProxyDescriptor extends AttributeFamilyDescriptor {
   }
 
   @SuppressWarnings("unchecked")
-  private static LogObserver wrapTransformed(
+  private static <T> LogObserver<T> wrapTransformed(
       AttributeProxyDescriptorImpl proxy,
-      LogObserver observer) {
+      LogObserver<T> observer) {
 
-    return new LogObserver() {
+    return new LogObserver<T>() {
 
       @Override
-      public boolean onNext(StreamElement ingest, LogObserver.OffsetCommitter confirm) {
+      public boolean onNext(StreamElement<T> ingest, LogObserver.OffsetCommitter confirm) {
         return observer.onNext(
             transformToProxy(ingest, proxy), confirm);
       }
@@ -489,8 +493,8 @@ class AttributeFamilyProxyDescriptor extends AttributeFamilyDescriptor {
     };
   }
 
-  static BulkLogObserver wrapTransformed(BulkLogObserver observer) {
-    return new BulkLogObserver() {
+  static <T> BulkLogObserver<T> wrapTransformed(BulkLogObserver<T> observer) {
+    return new BulkLogObserver<T>() {
 
       @Override
       public void onCompleted() {
@@ -504,7 +508,7 @@ class AttributeFamilyProxyDescriptor extends AttributeFamilyDescriptor {
 
       @Override
       public boolean onNext(
-          StreamElement ingest,
+          StreamElement<T> ingest,
           Partition partition,
           BulkLogObserver.OffsetCommitter confirm) {
 
@@ -524,12 +528,12 @@ class AttributeFamilyProxyDescriptor extends AttributeFamilyDescriptor {
     };
   }
 
-  static BatchLogObserver wrapTransformed(BatchLogObserver observer) {
-    return new BatchLogObserver() {
+  static <T> BatchLogObserver<T> wrapTransformed(BatchLogObserver<T> observer) {
+    return new BatchLogObserver<T>() {
 
       @Override
       public boolean onNext(
-          StreamElement ingest,
+          StreamElement<T> ingest,
           Partition partition) {
 
         return observer.onNext(ingest, partition);
@@ -548,10 +552,11 @@ class AttributeFamilyProxyDescriptor extends AttributeFamilyDescriptor {
     };
   }
 
-  private static <T> PartitionedLogObserver<T> wrapTransformed(
-      AttributeProxyDescriptorImpl<T> target, PartitionedLogObserver<T> observer) {
+  private static <IN, OUT> PartitionedLogObserver<IN, OUT> wrapTransformed(
+      AttributeProxyDescriptorImpl<OUT> target,
+      PartitionedLogObserver<IN, OUT> observer) {
 
-    return new PartitionedLogObserver<T>() {
+    return new PartitionedLogObserver<IN, OUT>() {
 
       @Override
       public void onRepartition(Collection<Partition> assigned) {
@@ -560,10 +565,10 @@ class AttributeFamilyProxyDescriptor extends AttributeFamilyDescriptor {
 
       @Override
       public boolean onNext(
-          StreamElement ingest,
+          StreamElement<IN> ingest,
           PartitionedLogObserver.ConfirmCallback confirm,
           Partition partition,
-          Consumer<T> collector) {
+          Consumer<OUT> collector) {
 
         return observer.onNext(transformToProxy(ingest, target),
             confirm, partition, collector);
@@ -583,8 +588,8 @@ class AttributeFamilyProxyDescriptor extends AttributeFamilyDescriptor {
   }
 
   @SuppressWarnings("unchecked")
-  private static StreamElement transformToRaw(
-      StreamElement data,
+  private static <T> StreamElement<T> transformToRaw(
+      StreamElement<T> data,
       AttributeProxyDescriptorImpl targetDesc) {
 
     return transform(data,
@@ -593,8 +598,8 @@ class AttributeFamilyProxyDescriptor extends AttributeFamilyDescriptor {
   }
 
   @SuppressWarnings("unchecked")
-  private static StreamElement transformToProxy(
-      StreamElement data,
+  private static <T> StreamElement<T> transformToProxy(
+      StreamElement<T> data,
       AttributeProxyDescriptorImpl targetDesc) {
 
     return transform(data, targetDesc, targetDesc.getTransform()::toProxy);
@@ -613,8 +618,8 @@ class AttributeFamilyProxyDescriptor extends AttributeFamilyDescriptor {
   }
 
   @SuppressWarnings("unchecked")
-  private static StreamElement transform(
-      StreamElement data,
+  private static <T> StreamElement<T> transform(
+      StreamElement<T> data,
       AttributeDescriptor target,
       Function<String, String> transform) {
 

@@ -28,9 +28,9 @@ import java.io.Serializable;
  */
 @Stable
 @Slf4j
-public abstract class RetryableBulkObserver<OFF extends Serializable>
+public abstract class RetryableBulkObserver<T, OFF extends Serializable>
     extends AbstractRetryableLogObserver
-    implements BulkLogObserver {
+    implements BulkLogObserver<T> {
 
   public RetryableBulkObserver(
       int maxRetries,
@@ -42,8 +42,8 @@ public abstract class RetryableBulkObserver<OFF extends Serializable>
 
   @Override
   public final boolean onNext(
-      StreamElement ingest, Partition partition,
-      BulkLogObserver.OffsetCommitter confirm) {
+      StreamElement<T> ingest, Partition partition,
+      OffsetCommitter confirm) {
 
     boolean ret = onNextInternal(ingest, partition, confirm);
     success();
@@ -66,8 +66,7 @@ public abstract class RetryableBulkObserver<OFF extends Serializable>
    * @return {@code true} to continue processing, {@code false} otherwise
    */
   protected boolean onNextInternal(
-      StreamElement ingest,
-      BulkLogObserver.OffsetCommitter context) {
+      StreamElement<T> ingest, OffsetCommitter context) {
 
     throw new UnsupportedOperationException(
         "Please override either of `onNextInternal` methods");
@@ -81,8 +80,7 @@ public abstract class RetryableBulkObserver<OFF extends Serializable>
    * @return {@code true} to continue processing, {@code false} otherwise
    */
   protected boolean onNextInternal(
-      StreamElement ingest, Partition partition,
-      BulkLogObserver.OffsetCommitter context) {
+      StreamElement<T> ingest, Partition partition, OffsetCommitter context) {
 
     return onNextInternal(ingest, context);
   }
