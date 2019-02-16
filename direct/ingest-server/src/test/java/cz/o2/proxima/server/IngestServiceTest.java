@@ -49,9 +49,9 @@ public class IngestServiceTest {
   CountDownLatch latch;
 
   @Before
-  public void setup() throws InterruptedException {
-    server = new IngestServer(ConfigFactory.load("proto-reference.conf")
-        .withFallback(ConfigFactory.load())
+  public void setup() {
+    server = new IngestServer(ConfigFactory.load()
+        .withFallback(ConfigFactory.load("test-reference.conf"))
         .resolve());
     ingest = new IngestService(server.repo, server.direct, server.scheduler);
     server.startConsumerThreads();
@@ -63,9 +63,7 @@ public class IngestServiceTest {
 
       @Override
       public void onNext(Rpc.StatusBulk status) {
-        for (Rpc.Status s : status.getStatusList()) {
-          responses.add(s);
-        }
+        responses.addAll(status.getStatusList());
       }
 
       @Override
