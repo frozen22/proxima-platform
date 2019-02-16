@@ -41,7 +41,7 @@ public class RetrieveServiceTest {
 
   @Before
   public void setup() throws InterruptedException {
-    server = new IngestServer(ConfigFactory.load("test-reference.conf")
+    server = new IngestServer(ConfigFactory.load("proto-reference.conf")
         .withFallback(ConfigFactory.load())
         .resolve());
     retrieve = new RetrieveService(server.repo, server.direct);

@@ -50,8 +50,8 @@ public class IngestServiceTest {
 
   @Before
   public void setup() throws InterruptedException {
-    server = new IngestServer(ConfigFactory.load()
-        .withFallback(ConfigFactory.load("test-reference.conf"))
+    server = new IngestServer(ConfigFactory.load("proto-reference.conf")
+        .withFallback(ConfigFactory.load())
         .resolve());
     ingest = new IngestService(server.repo, server.direct, server.scheduler);
     server.startConsumerThreads();

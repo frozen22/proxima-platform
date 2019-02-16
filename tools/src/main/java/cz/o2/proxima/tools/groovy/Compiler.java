@@ -80,7 +80,7 @@ public class Compiler {
             throw new IllegalArgumentException(
                 "Unable to find config file " + f + ". Check your configuration.");
           }
-          return ConfigFactory.parseFile(new File(f));
+          return ConfigFactory.parseFile(c);
         })
         .reduce(
             ConfigFactory.empty(),
