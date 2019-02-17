@@ -16,6 +16,8 @@
 package cz.o2.proxima.tools.groovy;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.google.protobuf.AbstractMessage;
 import com.google.protobuf.AbstractMessage.Builder;
 import com.google.protobuf.TextFormat;
@@ -527,6 +529,21 @@ public class Console {
   }
 
 
+  public void put(
+      EntityDescriptor entityDesc,
+      AttributeDescriptor attrDesc,
+      String key, String attribute, long stamp, String value
+  ) {
+    Gson gson = new Gson();
+    String classname = Optionals.get(repo.getValueSerializerFactory(
+        attrDesc.getSchemeUri().getScheme()))
+          .getClassName(attrDesc.getSchemeUri());
+    Class<?> clazz = Classpath.findClass(classname,Object.class);
+    Class<?> x = gson.fromJson(value,clazz.getClass());
+
+
+    throw new RuntimeException("tadaa" + x.toString());
+  }
   public <T> void put(
       EntityDescriptor entityDesc,
       AttributeDescriptor<T> attrDesc,

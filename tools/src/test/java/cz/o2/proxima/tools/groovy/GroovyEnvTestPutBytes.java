@@ -17,13 +17,9 @@ package cz.o2.proxima.tools.groovy;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import cz.o2.proxima.direct.commitlog.CommitLogReader;
-import cz.o2.proxima.direct.commitlog.LogObserver;
-import cz.o2.proxima.direct.core.DirectDataOperator;
 import cz.o2.proxima.repository.AttributeDescriptor;
 import cz.o2.proxima.repository.ConfigRepository;
 import cz.o2.proxima.repository.EntityDescriptor;
-import cz.o2.proxima.repository.Repository;
 import cz.o2.proxima.storage.StreamElement;
 import cz.o2.proxima.util.Optionals;
 import freemarker.template.Configuration;
@@ -32,39 +28,27 @@ import groovy.lang.GroovyClassLoader;
 import groovy.lang.Script;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
 
 @Slf4j
-public class GroovyEnvTestPutBytes {
-  final Config cfg = ConfigFactory.load("test-reference.conf").resolve();
-  final Repository repo = ConfigRepository.of(cfg);
+public class GroovyEnvTestPutBytes extends GroovyEnvAbstractPutTest {
+
 
   final EntityDescriptor gateway = Optionals.get(repo.findEntity("gateway"));
   final AttributeDescriptor<byte[]> users = Optionals.get(gateway.findAttribute("users"));
   final AttributeDescriptor<byte[]> device = Optionals.get(
       gateway.findAttribute("device.*"));
 
-  Configuration conf;
 
-  GroovyClassLoader loader;
-
-  DirectDataOperator direct;
-
-  @Before
-  public void setUp() {
-    Console console = Console.create(cfg, repo);
-    direct = console.getDirectDataOperator();
-    conf = new Configuration(Configuration.VERSION_2_3_23);
-    conf.setDefaultEncoding("utf-8");
-    conf.setClassForTemplateLoading(getClass(), "/");
-    conf.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
-    conf.setLogTemplateExceptions(false);
-
-    loader = new GroovyClassLoader(Thread.currentThread().getContextClassLoader());
-    Thread.currentThread().setContextClassLoader(loader);
+  @BeforeClass
+  public static void suitSetup() {
+    cfg = ConfigFactory.load("test-reference.conf").resolve();
+    repo = ConfigRepository.of(cfg);
   }
+
 
   @Test
   public void testPutBytes() throws Exception {
@@ -149,47 +133,5 @@ public class GroovyEnvTestPutBytes {
 
   }
 
-
-  void executeTest(AbstractTest test, AttributeDescriptor attr) throws Exception {
-    test.execute(
-        Optionals.get(direct.getCommitLogReader(attr)));
-  }
-
-
-  @SuppressWarnings("unchecked")
-  Script compile(String script) throws Exception { // @TODO: refactor
-    String source = GroovyEnv.getSource(conf, repo)
-        + "\n"
-        + "env = cz.o2.proxima.tools.groovy.Console.get().getEnv()"
-        + "\n"
-        + script;
-    Class<Script> parsed = loader.parseClass(source);
-    return parsed.newInstance();
-  }
-
-  private abstract static class AbstractTest {
-
-    abstract Script inputScript() throws Exception;
-
-    abstract void validate(StreamElement element);
-
-    void execute(CommitLogReader commitLog) throws Exception {
-      commitLog.observe("test-observer", new LogObserver() {
-        @Override
-        public boolean onError(Throwable error) {
-          fail(error.getMessage());
-          return false;
-        }
-
-        @Override
-        public boolean onNext(StreamElement ingest, OnNextContext context) {
-          validate(ingest);
-          return false;
-        }
-      });
-      inputScript().run();
-    }
-
-  }
 
 }

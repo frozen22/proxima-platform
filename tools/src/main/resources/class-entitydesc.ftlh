@@ -126,7 +126,13 @@ class Environment implements RepositoryProvider {
             def void put(String key, String attribute, ${attribute.type} value) {
               console.put(${entity.classname}Descriptor.this.desc, desc, key, desc.toAttributePrefix() + attribute, System.currentTimeMillis(), value)
             }
+            def void put(String key, String attribute, String value) {
+              console.put(${entity.classname}Descriptor.this.desc, desc, key, desc.toAttributePrefix() + attribute, System.currentTimeMillis(), value)
+            }
             def void put(String key, String attribute, long stamp, ${attribute.type} value) {
+              console.put(${entity.classname}Descriptor.this.desc, desc, key, desc.toAttributePrefix() + attribute, stamp, value)
+            }
+            def void put(String key, String attribute, long stamp, String value) {
               console.put(${entity.classname}Descriptor.this.desc, desc, key, desc.toAttributePrefix() + attribute, stamp, value)
             }
             def void delete(String key, String attribute) {
@@ -148,7 +154,13 @@ class Environment implements RepositoryProvider {
             def void put(String key, ${attribute.type} value) {
               console.put(${entity.classname}Descriptor.this.desc, desc, key, desc.getName(), System.currentTimeMillis(), value)
             }
+            def void put(String key, String value) {
+              console.put(${entity.classname}Descriptor.this.desc, desc, key, desc.getName(), System.currentTimeMillis(), value)
+            }
             def void put(String key, long stamp, ${attribute.type} value) {
+              console.put(${entity.classname}Descriptor.this.desc, desc, key, desc.getName(), stamp, value)
+            }
+            def void put(String key, long stamp, String value) {
               console.put(${entity.classname}Descriptor.this.desc, desc, key, desc.getName(), stamp, value)
             }
             def void delete(String key) {
