@@ -805,68 +805,58 @@ class BeamStream<T> implements Stream<T> {
   public abstract static class ElementOrderedDoFn<IN, OUT> extends DoFn<IN, OUT> {
 
     private static final long MIN_STAMP = BoundedWindow.TIMESTAMP_MIN_VALUE.getMillis();
+    private static final long MAX_STAMP = BoundedWindow.TIMESTAMP_MAX_VALUE.getMillis();
     private final long allowedLateness;
 
     ElementOrderedDoFn(long allowedLateness) {
+      // FIXME: this is ignored for now
       this.allowedLateness = allowedLateness;
     }
 
     void onProcessElement(
         ProcessContext context,
         BagState<Pair<Long, IN>> unprocessed,
-        ValueState<Long> watermark,
+        ValueState<Long> minEnqueuedStamp,
         Timer flushTimer,
         BiConsumer<Long, IN> consumer) {
 
       IN elem = context.element();
       long timestamp = context.timestamp().getMillis();
-      long currentWatermark = MoreObjects.firstNonNull(watermark.read(), MIN_STAMP);
-      if (currentWatermark >= timestamp) {
-        // drop
-        log.debug(
-            "Dropping element {}, currentWatermark {}, timestamp {}",
-            elem, currentWatermark, timestamp);
-      } else {
-        unprocessed.add(Pair.of(timestamp, elem));
-        unprocessed.readLater();
-        // update watermark
-        long updatedWatermark = timestamp - allowedLateness;
-        if (currentWatermark < updatedWatermark) {
-          watermark.write(updatedWatermark);
-          watermark.readLater();
-          currentWatermark = updatedWatermark;
-        }
-        consumeElementsAfterWatermark(
-            unprocessed, currentWatermark, flushTimer, consumer);
+      unprocessed.add(Pair.of(timestamp, elem));
+      unprocessed.readLater();
+      long minStamp = MoreObjects.firstNonNull(minEnqueuedStamp.read(), MAX_STAMP);
+      if (minStamp > timestamp) {
+        minEnqueuedStamp.write(timestamp);
+        minEnqueuedStamp.readLater();
+        flushTimer.set(new Instant(timestamp));
       }
     }
 
     void onFlushTimer(
         OnTimerContext context,
         BagState<Pair<Long, IN>> unprocessed,
-        ValueState<Long> watermark,
+        ValueState<Long> minEnqueuedStamp,
         Timer flushTimer,
         BiConsumer<Long, IN> consumer) {
 
       long stamp = context.timestamp().getMillis();
-      long currentWatermark = MoreObjects.firstNonNull(watermark.read(), MIN_STAMP);
-      if (currentWatermark < stamp) {
-        watermark.write(stamp);
-        consumeElementsAfterWatermark(
-            unprocessed, stamp, flushTimer, consumer);
+      long newMinEnqueuedStamp = consumeElementsAfterWatermark(
+          unprocessed, stamp, consumer);
+      if (newMinEnqueuedStamp > MIN_STAMP) {
+        minEnqueuedStamp.write(newMinEnqueuedStamp);
+        flushTimer.set(new Instant(newMinEnqueuedStamp));
       }
     }
 
-    private void consumeElementsAfterWatermark(
+    private long consumeElementsAfterWatermark(
         BagState<Pair<Long, IN>> unprocessed,
-        long watermark,
-        Timer flushTimer,
+        long stamp,
         BiConsumer<Long, IN> consumer) {
 
       List<Pair<Long, IN>> keep = new ArrayList<>();
       List<Pair<Long, IN>> output = new ArrayList<>();
       Streams.stream(unprocessed.read()).forEach(e -> {
-        if (e.getFirst() <= watermark) {
+        if (e.getFirst() <= stamp) {
           output.add(e);
         } else {
           keep.add(e);
@@ -877,11 +867,8 @@ class BeamStream<T> implements Stream<T> {
       output.stream()
           .sorted((a, b) -> Long.compare(a.getFirst(), b.getFirst()))
           .forEachOrdered(e -> consumer.accept(e.getFirst(), e.getSecond()));
-      if (!keep.isEmpty()) {
-        long minStamp = keep.stream()
-            .map(Pair::getFirst).min(Long::compare).orElse(-1L);
-        flushTimer.set(new Instant(minStamp));
-      }
+      return keep.stream().map(Pair::getFirst)
+          .min(Long::compare).orElse(MIN_STAMP);
     }
 
     @Override
@@ -907,8 +894,8 @@ class BeamStream<T> implements Stream<T> {
     @StateId("unprocessed")
     private final StateSpec<BagState<Pair<Long, KV<K, V>>>> unprocessed;
 
-    @StateId("watermark")
-    private final StateSpec<ValueState<Long>> watermark;
+    @StateId("minStamp")
+    private final StateSpec<ValueState<Long>> minStamp;
 
     @StateId("combined")
     private final StateSpec<ValueState<V>> stateSpec;
@@ -928,7 +915,7 @@ class BeamStream<T> implements Stream<T> {
       Coder<V> valueCoder = kvCoder.getValueCoder();
       this.unprocessed = StateSpecs.bag(
           PairCoder.of(VarLongCoder.of(), KvCoder.of(keyCoder, valueCoder)));
-      this.watermark = StateSpecs.value(VarLongCoder.of());
+      this.minStamp = StateSpecs.value(VarLongCoder.of());
       this.stateSpec = StateSpecs.value(valueCoder);
       this.combiner = combiner;
       this.initialValue = initialValue;
@@ -938,11 +925,11 @@ class BeamStream<T> implements Stream<T> {
     public void process(
         ProcessContext context,
         @StateId("unprocessed") BagState<Pair<Long, KV<K, V>>> unprocessed,
-        @StateId("watermark") ValueState<Long> watermark,
+        @StateId("minStamp") ValueState<Long> minStamp,
         @TimerId("flush") Timer flushTimer,
         @StateId("combined") ValueState<V> state) {
 
-      onProcessElement(context, unprocessed, watermark, flushTimer, (stamp, elem) -> {
+      onProcessElement(context, unprocessed, minStamp, flushTimer, (stamp, elem) -> {
         consume(elem, state, context, stamp);
       });
     }
@@ -951,11 +938,11 @@ class BeamStream<T> implements Stream<T> {
     public void onFlush(
         OnTimerContext context,
         @StateId("unprocessed") BagState<Pair<Long, KV<K, V>>> unprocessed,
-        @StateId("watermark") ValueState<Long> watermark,
+        @StateId("minStamp") ValueState<Long> minStamp,
         @TimerId("flush") Timer flushTimer,
         @StateId("combined") ValueState<V> state) {
 
-      onFlushTimer(context, unprocessed, watermark, flushTimer, (stamp, elem) -> {
+      onFlushTimer(context, unprocessed, minStamp, flushTimer, (stamp, elem) -> {
         consume(elem, state, context, stamp);
       });
     }
@@ -1009,8 +996,8 @@ class BeamStream<T> implements Stream<T> {
     @StateId("unprocessed")
     private final StateSpec<BagState<Pair<Long, KV<K, V>>>> unprocessed;
 
-    @StateId("watermark")
-    private final StateSpec<ValueState<Long>> watermark;
+    @StateId("minStamp")
+    private final StateSpec<ValueState<Long>> minStamp;
 
     @TimerId("flush")
     private final TimerSpec flushTimer = TimerSpecs.timer(TimeDomain.EVENT_TIME);
@@ -1036,7 +1023,7 @@ class BeamStream<T> implements Stream<T> {
       Coder<V> valueCoder = kvCoder.getValueCoder();
       this.unprocessed = StateSpecs.bag(
           PairCoder.of(VarLongCoder.of(), KvCoder.of(keyCoder, valueCoder)));
-      this.watermark = StateSpecs.value(VarLongCoder.of());
+      this.minStamp = StateSpecs.value(VarLongCoder.of());
 
     }
 
@@ -1044,11 +1031,11 @@ class BeamStream<T> implements Stream<T> {
     public void processElement(
         ProcessContext context,
         @StateId("unprocessed") BagState<Pair<Long, KV<K, V>>> unprocessed,
-        @StateId("watermark") ValueState<Long> watermark,
+        @StateId("minStamp") ValueState<Long> minStamp,
         @TimerId("flush") Timer flushTimer,
         @StateId("value") ValueState<S> value) {
 
-      onProcessElement(context, unprocessed, watermark, flushTimer, (stamp, elem) -> {
+      onProcessElement(context, unprocessed, minStamp, flushTimer, (stamp, elem) -> {
         consume(elem, value, context, stamp);
       });
     }
@@ -1057,11 +1044,11 @@ class BeamStream<T> implements Stream<T> {
     public void onFlush(
         OnTimerContext context,
         @StateId("unprocessed") BagState<Pair<Long, KV<K, V>>> unprocessed,
-        @StateId("watermark") ValueState<Long> watermark,
+        @StateId("minStamp") ValueState<Long> minStamp,
         @TimerId("flush") Timer flushTimer,
         @StateId("value") ValueState<S> value) {
 
-      onFlushTimer(context, unprocessed, watermark, flushTimer, (stamp, elem) -> {
+      onFlushTimer(context, unprocessed, minStamp, flushTimer, (stamp, elem) -> {
         consume(elem, value, context, stamp);
       });
     }
