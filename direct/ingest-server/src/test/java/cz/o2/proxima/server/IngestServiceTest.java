@@ -54,7 +54,8 @@ public class IngestServiceTest {
         .withFallback(ConfigFactory.load("test-reference.conf"))
         .resolve());
     ingest = new IngestService(server.repo, server.direct, server.scheduler);
-    server.startConsumerThreads();
+    final ReplicationController controller = ReplicationController.of(server.repo);
+    controller.replicatePrimaryFamilies();
     latch = new CountDownLatch(1);
 
     responses = new LinkedBlockingQueue<>();

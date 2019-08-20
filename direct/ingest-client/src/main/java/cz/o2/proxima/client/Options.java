@@ -29,7 +29,7 @@ public class Options {
 
   @Getter
   @Setter
-  /** How often to flush the data in microseconds. */
+  /** How often to flush the data in microseconds.*/
   private int flushUsec = 50000;
 
   @Getter

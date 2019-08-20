@@ -45,9 +45,8 @@ public interface EntityDescriptor extends Serializable {
       return this;
     }
 
-    @SuppressWarnings("unchecked")
     public EntityDescriptor build() {
-      return new EntityDescriptorImpl(name, (Collection) attributes.values());
+      return new EntityDescriptorImpl(name, attributes.values());
     }
 
     AttributeDescriptor<?> findAttribute(String attr) {

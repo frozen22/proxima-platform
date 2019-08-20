@@ -69,7 +69,7 @@ public interface CachedView
 
   /**
    * Cache given {@link StreamElement} into local cache without writing
-   * it to the underlaying writer. This is used in conjunction with
+   * it to the underlying writer. This is used in conjunction with
    * attribute family proxy.
    * @param element the data to cache
    */
