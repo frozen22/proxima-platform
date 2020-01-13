@@ -15,13 +15,12 @@
  */
 package cz.o2.proxima.direct.jdbc;
 
+import static org.junit.Assert.*;
+
 import cz.o2.proxima.direct.randomaccess.KeyValue;
 import cz.o2.proxima.direct.randomaccess.RandomAccessReader;
 import cz.o2.proxima.repository.AttributeDescriptor;
 import cz.o2.proxima.storage.StreamElement;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.Test;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -31,8 +30,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-
-import static org.junit.Assert.*;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.Test;
 
 @Slf4j
 public class JdbcOnlineAttributeReaderTest extends JdbcBaseTest {
@@ -102,12 +101,12 @@ public class JdbcOnlineAttributeReaderTest extends JdbcBaseTest {
 
   @Test
   public void getInvalidAttributeTest() throws URISyntaxException {
-    AttributeDescriptor<byte[]> missing = AttributeDescriptor
-        .newBuilder(repository)
-        .setEntity(entity.getName())
-        .setName("missing")
-        .setSchemeUri(new URI("bytes:///"))
-        .build();
+    AttributeDescriptor<byte[]> missing =
+        AttributeDescriptor.newBuilder(repository)
+            .setEntity(entity.getName())
+            .setName("missing")
+            .setSchemeUri(new URI("bytes:///"))
+            .build();
     assertFalse(accessor.newRandomAccessReader().get("key", missing).isPresent());
   }
 }

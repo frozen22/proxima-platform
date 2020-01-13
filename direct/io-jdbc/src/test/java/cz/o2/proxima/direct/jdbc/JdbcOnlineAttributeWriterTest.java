@@ -66,12 +66,12 @@ public class JdbcOnlineAttributeWriterTest extends JdbcBaseTest {
 
   @Test
   public void writeIllegalAttribute() throws URISyntaxException {
-    AttributeDescriptor<byte[]> missing = AttributeDescriptor
-        .newBuilder(repository)
-        .setEntity(entity.getName())
-        .setName("missing")
-        .setSchemeUri(new URI("bytes:///"))
-        .build();
+    AttributeDescriptor<byte[]> missing =
+        AttributeDescriptor.newBuilder(repository)
+            .setEntity(entity.getName())
+            .setName("missing")
+            .setSchemeUri(new URI("bytes:///"))
+            .build();
 
     StreamElement element =
         StreamElement.update(

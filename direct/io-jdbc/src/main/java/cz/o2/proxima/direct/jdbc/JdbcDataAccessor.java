@@ -15,8 +15,10 @@
  */
 package cz.o2.proxima.direct.jdbc;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import cz.o2.proxima.annotations.Experimental;
 import cz.o2.proxima.direct.core.AttributeWriterBase;
 import cz.o2.proxima.direct.core.Context;
 import cz.o2.proxima.direct.core.DataAccessor;
@@ -31,6 +33,7 @@ import java.util.Optional;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
+@Experimental(value = "Need real use case")
 @Slf4j
 public class JdbcDataAccessor extends AbstractStorage implements DataAccessor {
   static final String JDBC_URI_STORAGE_PREFIX = "jdbc://";
@@ -40,8 +43,8 @@ public class JdbcDataAccessor extends AbstractStorage implements DataAccessor {
   @SuppressWarnings("squid:S2068")
   static final String JDBC_PASSWORD_CFG = "password";
 
-  static final String JDBC_SQL_QUERY_FACTORY = "sqlQueryfactory";
-  static final String JDBC_RESULT_CONVERTER = "converter";
+  static final String JDBC_SQL_QUERY_FACTORY_CFG = "sqlQueryFactory";
+  static final String JDBC_RESULT_CONVERTER_CFG = "converter";
 
   private final String jdbcUri;
   private final String jdbcUsername;
@@ -67,35 +70,36 @@ public class JdbcDataAccessor extends AbstractStorage implements DataAccessor {
     jdbcUsername = cfg.getOrDefault(JDBC_USERNAME_CFG, "").toString();
     jdbcPassword = cfg.getOrDefault(JDBC_PASSWORD_CFG, "").toString();
 
-    if (!cfg.containsKey(JDBC_SQL_QUERY_FACTORY)) {
+    if (!cfg.containsKey(JDBC_SQL_QUERY_FACTORY_CFG)) {
       log.error("Missing configuration param {}.", JDBC_URI_STORAGE_PREFIX);
       throw new IllegalStateException(
-          String.format("Missing configuration param %s", JDBC_SQL_QUERY_FACTORY));
+          String.format("Missing configuration param %s", JDBC_SQL_QUERY_FACTORY_CFG));
     } else {
-      log.info("Using '{}' as SqlStatementFactory.", cfg.get(JDBC_SQL_QUERY_FACTORY));
+      log.info(
+          "Using '{}' as {}.", cfg.get(JDBC_SQL_QUERY_FACTORY_CFG), JDBC_SQL_QUERY_FACTORY_CFG);
       sqlStatementFactory =
           Classpath.newInstance(
-              cfg.get(JDBC_SQL_QUERY_FACTORY).toString(), SqlStatementFactory.class);
+              cfg.get(JDBC_SQL_QUERY_FACTORY_CFG).toString(), SqlStatementFactory.class);
       try {
         sqlStatementFactory.setup(entityDesc, uri, this.getDataSource());
       } catch (SQLException e) {
         log.error(
             "Unable to setup {} from class {}.",
-            JDBC_SQL_QUERY_FACTORY,
-            cfg.get(JDBC_SQL_QUERY_FACTORY),
+            JDBC_SQL_QUERY_FACTORY_CFG,
+            cfg.get(JDBC_SQL_QUERY_FACTORY_CFG),
             e);
         throw new IllegalStateException(e.getMessage(), e);
       }
     }
 
-    if (!cfg.containsKey(JDBC_RESULT_CONVERTER)) {
-      log.error("Missing configuration param {}.", JDBC_RESULT_CONVERTER);
+    if (!cfg.containsKey(JDBC_RESULT_CONVERTER_CFG)) {
+      log.error("Missing configuration param {}.", JDBC_RESULT_CONVERTER_CFG);
       throw new IllegalStateException(
-          String.format("Missing configuration param %s", JDBC_RESULT_CONVERTER));
+          String.format("Missing configuration param %s", JDBC_RESULT_CONVERTER_CFG));
     } else {
-      log.info("Using '{}' as SqlStatementFactory.", cfg.get(JDBC_RESULT_CONVERTER));
+      log.info("Using '{}' as SqlStatementFactory.", cfg.get(JDBC_RESULT_CONVERTER_CFG));
       resultConverter =
-          Classpath.newInstance(cfg.get(JDBC_RESULT_CONVERTER).toString(), Converter.class);
+          Classpath.newInstance(cfg.get(JDBC_RESULT_CONVERTER_CFG).toString(), Converter.class);
       resultConverter.setup();
     }
   }
@@ -110,10 +114,12 @@ public class JdbcDataAccessor extends AbstractStorage implements DataAccessor {
     return Optional.of(newRandomAccessReader());
   }
 
+  @VisibleForTesting
   AttributeWriterBase newWriter() {
     return new JdbcOnlineAttributeWriter(this, this.sqlStatementFactory, entityDescriptor, uri);
   }
 
+  @VisibleForTesting
   RandomAccessReader newRandomAccessReader() {
     return new JdbcOnlineAttributeReader(this, this.sqlStatementFactory, entityDescriptor, uri);
   }
@@ -135,8 +141,8 @@ public class JdbcDataAccessor extends AbstractStorage implements DataAccessor {
       if (!jdbcPassword.isEmpty()) {
         dataSourceConfig.setPassword(jdbcPassword);
       }
-      this.dataSource = new HikariDataSource(dataSourceConfig);
+      dataSource = new HikariDataSource(dataSourceConfig);
     }
-    return this.dataSource;
+    return dataSource;
   }
 }

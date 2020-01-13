@@ -52,8 +52,9 @@ public abstract class JdbcBaseTest {
             .build();
     entity = EntityDescriptor.newBuilder().setName("dummy").addAttribute(attr).build();
     Map<String, Object> config = new HashMap<>();
-    config.put(JdbcDataAccessor.JDBC_SQL_QUERY_FACTORY, HsqldbSqlStatementFactory.class.getName());
-    config.put(JdbcDataAccessor.JDBC_RESULT_CONVERTER, TestConverter.class.getName());
+    config.put(
+        JdbcDataAccessor.JDBC_SQL_QUERY_FACTORY_CFG, HsqldbSqlStatementFactory.class.getName());
+    config.put(JdbcDataAccessor.JDBC_RESULT_CONVERTER_CFG, TestConverter.class.getName());
     // config.put(JdbcDataAccessor.JDBC_DRIVER_CFG, "org.hsqldb.jdbc.JDBCDataSource");
     config.put(JdbcDataAccessor.JDBC_USERNAME_CFG, "SA");
     config.put(JdbcDataAccessor.JDBC_PASSWORD_CFG, "");
