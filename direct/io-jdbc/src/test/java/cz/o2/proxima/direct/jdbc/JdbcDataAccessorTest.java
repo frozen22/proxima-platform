@@ -16,13 +16,14 @@
 package cz.o2.proxima.direct.jdbc;
 
 import cz.o2.proxima.util.TestUtils;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.Map;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.Test;
 
 @Slf4j
 public class JdbcDataAccessorTest extends JdbcBaseTest {
@@ -32,7 +33,7 @@ public class JdbcDataAccessorTest extends JdbcBaseTest {
   }
 
   @Test(expected = IllegalStateException.class)
-  public void testInitializeWithoutSqlFactory() {
+  public void initializeWithoutSqlFactoryTest() {
     Map<String, Object> cfg =
         Collections.singletonMap(
             JdbcDataAccessor.JDBC_RESULT_CONVERTER, TestConverter.class.getName());
@@ -43,7 +44,7 @@ public class JdbcDataAccessorTest extends JdbcBaseTest {
   }
 
   @Test(expected = IllegalStateException.class)
-  public void testInitializeWithoutConverter() {
+  public void initializeWithoutConverterTest() {
     Map<String, Object> cfg =
         Collections.singletonMap(
             JdbcDataAccessor.JDBC_SQL_QUERY_FACTORY, HsqldbSqlStatementFactory.class.getName());

@@ -19,8 +19,10 @@ import static org.junit.Assert.*;
 
 import cz.o2.proxima.direct.randomaccess.KeyValue;
 import cz.o2.proxima.direct.randomaccess.RandomAccessReader;
+import cz.o2.proxima.repository.AttributeDescriptor;
 import cz.o2.proxima.storage.StreamElement;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Optional;
 import java.util.UUID;
@@ -60,6 +62,27 @@ public class JdbcOnlineAttributeWriterTest extends JdbcBaseTest {
             System.currentTimeMillis(),
             "value".getBytes());
     writeElement(accessor, element);
+  }
+
+  @Test
+  public void writeIllegalAttribute() throws URISyntaxException {
+    AttributeDescriptor<byte[]> missing = AttributeDescriptor
+        .newBuilder(repository)
+        .setEntity(entity.getName())
+        .setName("missing")
+        .setSchemeUri(new URI("bytes:///"))
+        .build();
+
+    StreamElement element =
+        StreamElement.update(
+            entity,
+            missing,
+            UUID.randomUUID().toString(),
+            "key",
+            missing.getName(),
+            System.currentTimeMillis(),
+            "value".getBytes());
+    assertFalse(writeElement(accessor, element).get());
   }
 
   @Test

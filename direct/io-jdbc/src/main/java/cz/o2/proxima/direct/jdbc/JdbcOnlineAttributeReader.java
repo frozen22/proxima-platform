@@ -64,7 +64,7 @@ public class JdbcOnlineAttributeReader extends AbstractStorage implements Random
         return Optional.empty();
       } else {
         return Optional.of(
-            KeyValue.<T>of(
+            KeyValue.of(
                 getEntityDescriptor(),
                 desc,
                 key,
@@ -74,6 +74,7 @@ public class JdbcOnlineAttributeReader extends AbstractStorage implements Random
       }
     } catch (SQLException e) {
       log.error("Error during query execution: {}", e.getMessage(), e);
+      //@TODO: Maybe re-throw exception in case of SQLSyntaxErrorException?
       return Optional.empty();
     }
   }
