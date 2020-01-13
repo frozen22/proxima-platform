@@ -35,15 +35,12 @@ import org.junit.After;
 import org.junit.Before;
 
 @Slf4j
-public class JdbcBaseTest {
+public abstract class JdbcBaseTest {
   final Repository repository =
       ConfigRepository.Builder.ofTest(ConfigFactory.defaultApplication()).build();
 
   final AttributeDescriptor<Byte[]> attr;
   final EntityDescriptor entity;
-
-  final Map<String, Object> config = new HashMap<>();
-
   final JdbcDataAccessor accessor;
 
   public JdbcBaseTest() throws URISyntaxException {
@@ -54,6 +51,7 @@ public class JdbcBaseTest {
             .setSchemeUri(new URI("bytes:///"))
             .build();
     entity = EntityDescriptor.newBuilder().setName("dummy").addAttribute(attr).build();
+    Map<String, Object> config = new HashMap<>();
     config.put(JdbcDataAccessor.JDBC_SQL_QUERY_FACTORY, HsqldbSqlStatementFactory.class.getName());
     config.put(JdbcDataAccessor.JDBC_RESULT_CONVERTER, TestConverter.class.getName());
     // config.put(JdbcDataAccessor.JDBC_DRIVER_CFG, "org.hsqldb.jdbc.JDBCDataSource");

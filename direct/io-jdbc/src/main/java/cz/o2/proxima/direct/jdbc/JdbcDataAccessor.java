@@ -36,28 +36,36 @@ public class JdbcDataAccessor extends AbstractStorage implements DataAccessor {
   static final String JDBC_URI_STORAGE_PREFIX = "jdbc://";
   static final String JDBC_DRIVER_CFG = "driverClassName";
   static final String JDBC_USERNAME_CFG = "username";
+
+  @SuppressWarnings("squid:S2068")
   static final String JDBC_PASSWORD_CFG = "password";
+
   static final String JDBC_SQL_QUERY_FACTORY = "sqlQueryfactory";
   static final String JDBC_RESULT_CONVERTER = "converter";
 
-  private final Map<String, Object> cfg;
   private final String jdbcUri;
+  private final String jdbcUsername;
+  private final String jdbcPassword;
+  private final String jdbcDriver;
 
   private final EntityDescriptor entityDescriptor;
   private final URI uri;
 
   private final SqlStatementFactory sqlStatementFactory;
 
-  @Getter private final Converter resultConverter;
+  @Getter private final Converter<?> resultConverter;
 
   private transient HikariDataSource dataSource;
 
   protected JdbcDataAccessor(EntityDescriptor entityDesc, URI uri, Map<String, Object> cfg) {
     super(entityDesc, uri);
-    this.cfg = cfg;
     this.jdbcUri = uri.toString().substring(JDBC_URI_STORAGE_PREFIX.length());
     this.entityDescriptor = entityDesc;
     this.uri = uri;
+
+    jdbcDriver = cfg.getOrDefault(JDBC_DRIVER_CFG, "").toString();
+    jdbcUsername = cfg.getOrDefault(JDBC_USERNAME_CFG, "").toString();
+    jdbcPassword = cfg.getOrDefault(JDBC_PASSWORD_CFG, "").toString();
 
     if (!cfg.containsKey(JDBC_SQL_QUERY_FACTORY)) {
       log.error("Missing configuration param {}.", JDBC_URI_STORAGE_PREFIX);
@@ -90,13 +98,6 @@ public class JdbcDataAccessor extends AbstractStorage implements DataAccessor {
           Classpath.newInstance(cfg.get(JDBC_RESULT_CONVERTER).toString(), Converter.class);
       resultConverter.setup();
     }
-
-    /* @TODO
-    for (Map.Entry<String, Object> entry : cfg.entrySet()) {
-      log.debug("Setting property {} to value {}.", entry.getKey(), entry.getValue());
-      dataSourceConfig.addDataSourceProperty(entry.getKey(), entry.getValue());
-    }
-     */
   }
 
   @Override
@@ -122,16 +123,17 @@ public class JdbcDataAccessor extends AbstractStorage implements DataAccessor {
       HikariConfig dataSourceConfig = new HikariConfig();
       dataSourceConfig.setPoolName(
           String.format("jdbc-pool-%s", this.getEntityDescriptor().getName()));
-      if (cfg.containsKey(JDBC_DRIVER_CFG)) {
-        dataSourceConfig.setDataSourceClassName(cfg.get(JDBC_DRIVER_CFG).toString());
+
+      if (!jdbcDriver.isEmpty()) {
+        dataSourceConfig.setDataSourceClassName(jdbcDriver);
       }
-      log.info("Creating JDBC storage from url: {}", this.jdbcUri);
-      dataSourceConfig.setJdbcUrl(this.jdbcUri);
-      if (cfg.containsKey(JDBC_USERNAME_CFG)) {
-        dataSourceConfig.setUsername(cfg.get(JDBC_USERNAME_CFG).toString());
+      log.info("Creating JDBC storage from url: {}", jdbcUri);
+      dataSourceConfig.setJdbcUrl(jdbcUri);
+      if (!jdbcUsername.isEmpty()) {
+        dataSourceConfig.setUsername(jdbcUsername);
       }
-      if (cfg.containsKey(JDBC_PASSWORD_CFG)) {
-        dataSourceConfig.setPassword(cfg.get(JDBC_PASSWORD_CFG).toString());
+      if (!jdbcPassword.isEmpty()) {
+        dataSourceConfig.setPassword(jdbcPassword);
       }
       this.dataSource = new HikariDataSource(dataSourceConfig);
     }
