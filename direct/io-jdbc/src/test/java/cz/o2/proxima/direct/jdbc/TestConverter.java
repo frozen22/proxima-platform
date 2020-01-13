@@ -15,14 +15,19 @@
  */
 package cz.o2.proxima.direct.jdbc;
 
-import cz.o2.proxima.direct.randomaccess.RandomOffset;
+import cz.o2.proxima.repository.AttributeDescriptor;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
-public class Offsets {
-  public static class Raw implements RandomOffset {
-    private final String key;
+public class TestConverter<T> implements Converter<T> {
+  @Override
+  public String getKeyFromResult(ResultSet result) throws SQLException {
+    return result.getString("id");
+  }
 
-    public Raw(String key) {
-      this.key = key;
-    }
+  @Override
+  public Object attributeValue(ResultSet resultSet, AttributeDescriptor<T> attr)
+      throws SQLException {
+    return resultSet.getString(attr.getName());
   }
 }

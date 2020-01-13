@@ -36,7 +36,7 @@ public class JdbcStorageDescriptorTest {
         descriptor.accepts(new URI("jdbc://mysql://root:password@localhost/test")));
     assertEquals(
         AbstractDataAccessorFactory.Accept.ACCEPT,
-        descriptor.accepts(new URI("JDBC://mysql://localhost/ttest")));
+        descriptor.accepts(new URI("JDBC://mysql://localhost/test")));
     assertEquals(
         AbstractDataAccessorFactory.Accept.REJECT,
         descriptor.accepts(new URI("http://localhost:80/foo")));

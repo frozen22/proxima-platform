@@ -23,11 +23,13 @@ import cz.o2.proxima.direct.core.DataAccessor;
 import cz.o2.proxima.direct.randomaccess.RandomAccessReader;
 import cz.o2.proxima.repository.EntityDescriptor;
 import cz.o2.proxima.storage.AbstractStorage;
-import lombok.extern.slf4j.Slf4j;
-
+import cz.o2.proxima.util.Classpath;
 import java.net.URI;
+import java.sql.SQLException;
 import java.util.Map;
 import java.util.Optional;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class JdbcDataAccessor extends AbstractStorage implements DataAccessor {
@@ -35,12 +37,18 @@ public class JdbcDataAccessor extends AbstractStorage implements DataAccessor {
   static final String JDBC_DRIVER_CFG = "driverClassName";
   static final String JDBC_USERNAME_CFG = "username";
   static final String JDBC_PASSWORD_CFG = "password";
+  static final String JDBC_SQL_QUERY_FACTORY = "sqlQueryfactory";
+  static final String JDBC_RESULT_CONVERTER = "converter";
 
   private final Map<String, Object> cfg;
   private final String jdbcUri;
 
   private final EntityDescriptor entityDescriptor;
   private final URI uri;
+
+  private final SqlStatementFactory sqlStatementFactory;
+
+  @Getter private final Converter resultConverter;
 
   private transient HikariDataSource dataSource;
 
@@ -50,6 +58,38 @@ public class JdbcDataAccessor extends AbstractStorage implements DataAccessor {
     this.jdbcUri = uri.toString().substring(JDBC_URI_STORAGE_PREFIX.length());
     this.entityDescriptor = entityDesc;
     this.uri = uri;
+
+    if (!cfg.containsKey(JDBC_SQL_QUERY_FACTORY)) {
+      log.error("Missing configuration param {}.", JDBC_URI_STORAGE_PREFIX);
+      throw new IllegalStateException(
+          String.format("Missing configuration param %s", JDBC_SQL_QUERY_FACTORY));
+    } else {
+      log.info("Using '{}' as SqlStatementFactory.", cfg.get(JDBC_SQL_QUERY_FACTORY));
+      sqlStatementFactory =
+          Classpath.newInstance(
+              cfg.get(JDBC_SQL_QUERY_FACTORY).toString(), SqlStatementFactory.class);
+      try {
+        sqlStatementFactory.setup(entityDesc, uri, this.getDataSource());
+      } catch (SQLException e) {
+        log.error(
+            "Unable to setup {} from class {}.",
+            JDBC_SQL_QUERY_FACTORY,
+            cfg.get(JDBC_SQL_QUERY_FACTORY),
+            e);
+        throw new IllegalStateException(e.getMessage(), e);
+      }
+    }
+
+    if (!cfg.containsKey(JDBC_RESULT_CONVERTER)) {
+      log.error("Missing configuration param {}.", JDBC_RESULT_CONVERTER);
+      throw new IllegalStateException(
+          String.format("Missing configuration param %s", JDBC_RESULT_CONVERTER));
+    } else {
+      log.info("Using '{}' as SqlStatementFactory.", cfg.get(JDBC_RESULT_CONVERTER));
+      resultConverter =
+          Classpath.newInstance(cfg.get(JDBC_RESULT_CONVERTER).toString(), Converter.class);
+      resultConverter.setup();
+    }
 
     /* @TODO
     for (Map.Entry<String, Object> entry : cfg.entrySet()) {
@@ -70,11 +110,11 @@ public class JdbcDataAccessor extends AbstractStorage implements DataAccessor {
   }
 
   AttributeWriterBase newWriter() {
-    return new JdbcOnlineAttributeWriter(this, entityDescriptor, uri);
+    return new JdbcOnlineAttributeWriter(this, this.sqlStatementFactory, entityDescriptor, uri);
   }
 
   RandomAccessReader newRandomAccessReader() {
-    return new JdbcOnlineAttributeReader(this, entityDescriptor, uri);
+    return new JdbcOnlineAttributeReader(this, this.sqlStatementFactory, entityDescriptor, uri);
   }
 
   HikariDataSource getDataSource() {

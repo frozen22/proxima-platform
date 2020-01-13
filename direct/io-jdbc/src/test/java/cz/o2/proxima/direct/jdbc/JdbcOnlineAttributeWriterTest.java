@@ -16,9 +16,79 @@
 package cz.o2.proxima.direct.jdbc;
 
 import static org.junit.Assert.*;
-//import static org.junit.Assert.*;
 
-public class JdbcOnlineAttributeWriterTest {
+import cz.o2.proxima.direct.randomaccess.KeyValue;
+import cz.o2.proxima.direct.randomaccess.RandomAccessReader;
+import cz.o2.proxima.storage.StreamElement;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.Optional;
+import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.Test;
 
+@Slf4j
+public class JdbcOnlineAttributeWriterTest extends JdbcBaseTest {
 
+  public JdbcOnlineAttributeWriterTest() throws URISyntaxException {
+    super();
+  }
+
+  @Test
+  public void writeSuccessfullyTest() {
+    StreamElement element =
+        StreamElement.update(
+            entity,
+            attr,
+            UUID.randomUUID().toString(),
+            "12345",
+            attr.getName(),
+            System.currentTimeMillis(),
+            "value".getBytes());
+    assertTrue(writeElement(accessor, element).get());
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void writeFailTest() {
+    StreamElement element =
+        StreamElement.update(
+            entity,
+            attr,
+            UUID.randomUUID().toString(),
+            "",
+            attr.getName(),
+            System.currentTimeMillis(),
+            "value".getBytes());
+    writeElement(accessor, element);
+  }
+
+  @Test
+  public void deleteTest() throws IOException {
+    try (RandomAccessReader reader = accessor.newRandomAccessReader()) {
+      StreamElement element =
+          StreamElement.update(
+              entity,
+              attr,
+              UUID.randomUUID().toString(),
+              "12345",
+              attr.getName(),
+              System.currentTimeMillis(),
+              "value".getBytes());
+      assertTrue(writeElement(accessor, element).get());
+      Optional<KeyValue<Byte[]>> keyValue = reader.get("12345", attr);
+      assertTrue(keyValue.isPresent());
+      StreamElement delete =
+          StreamElement.delete(
+              entity,
+              attr,
+              UUID.randomUUID().toString(),
+              "12345",
+              attr.getName(),
+              System.currentTimeMillis());
+      assertTrue(writeElement(accessor, delete).get());
+
+      keyValue = reader.get("12345", attr);
+      assertFalse(keyValue.isPresent());
+    }
+  }
 }

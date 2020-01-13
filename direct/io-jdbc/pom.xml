@@ -30,6 +30,40 @@
   <packaging>jar</packaging>
 
   <name>${project.groupId}:${project.artifactId}</name>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>${maven.shade.version}</version>
+        <configuration>
+          <artifactSet>
+            <excludes>
+              <!-- exclude proxima and core dependencies -->
+              <exclude>cz.o2.proxima:proxima-core</exclude>
+              <exclude>cz.o2.proxima:proxima-direct-core</exclude>
+            </excludes>
+          </artifactSet>
+          <relocations>
+            <relocation>
+              <pattern>com.google.common.</pattern>
+              <shadedPattern>cz.o2.proxima.cassandra.shaded.com.google.common.</shadedPattern>
+            </relocation>
+          </relocations>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
   <dependencies>
 
     <dependency>
@@ -51,6 +85,13 @@
     </dependency>
 
     <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>${guava.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
     </dependency>
@@ -69,13 +110,6 @@
       <groupId>org.hsqldb</groupId>
       <artifactId>hsqldb</artifactId>
       <version>2.5.0</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>com.h2database</groupId>
-      <artifactId>h2</artifactId>
-      <version>1.4.200</version>
       <scope>test</scope>
     </dependency>
 
