@@ -25,5 +25,9 @@ public interface Converter<T> extends Serializable {
 
   String getKeyFromResult(ResultSet result) throws SQLException;
 
+  default long getTimestampFromResult(ResultSet result) throws SQLException {
+    return System.currentTimeMillis();
+  }
+
   Object attributeValue(ResultSet resultSet, AttributeDescriptor<T> attr) throws SQLException;
 }

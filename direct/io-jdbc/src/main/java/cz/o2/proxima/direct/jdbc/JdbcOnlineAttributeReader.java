@@ -70,7 +70,8 @@ public class JdbcOnlineAttributeReader extends AbstractStorage implements Random
                 key,
                 desc.getName(),
                 new Offsets.Raw(accessor.getResultConverter().getKeyFromResult(result)),
-                result.getString(desc.getName()).getBytes()));
+                result.getString(desc.getName()).getBytes(),
+                accessor.getResultConverter().getTimestampFromResult(result)));
       }
     } catch (SQLException e) {
       log.error("Error during query execution: {}", e.getMessage(), e);

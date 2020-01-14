@@ -70,7 +70,7 @@ public abstract class JdbcBaseTest {
     HikariDataSource dataSource = accessor.getDataSource();
     try (Statement statement = dataSource.getConnection().createStatement()) {
       final String createTableSql =
-          "CREATE TABLE DUMMYTABLE (id VARCHAR(255) NOT NULL, attribute VARCHAR(255) NOT NULL, PRIMARY KEY (id) )";
+          "CREATE TABLE DUMMYTABLE (id VARCHAR(255) NOT NULL, attribute VARCHAR(255) NOT NULL, updatedAt TIMESTAMP NOT NULL, PRIMARY KEY (id) )";
       // "CREATE TABLE DUMMYTABLE (id VARCHAR(255) NOT NULL, attribute VARCHAR(255) NOT NULL,
       // updatedAt TIMESTAMP NOT NULL, PRIMARY KEY (id) )";
       statement.execute(createTableSql);

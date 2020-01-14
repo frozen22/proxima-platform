@@ -30,4 +30,9 @@ public class TestConverter<T> implements Converter<T> {
       throws SQLException {
     return resultSet.getString(attr.getName());
   }
+
+  @Override
+  public long getTimestampFromResult(ResultSet result) throws SQLException {
+    return result.getTimestamp("updatedAt").getTime();
+  }
 }

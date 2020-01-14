@@ -75,6 +75,7 @@ public class JdbcOnlineAttributeReaderTest extends JdbcBaseTest {
 
   @Test
   public void writeAndReadSuccessfullyTest() {
+    final long tms = System.currentTimeMillis();
     StreamElement element =
         StreamElement.update(
             entity,
@@ -82,7 +83,7 @@ public class JdbcOnlineAttributeReaderTest extends JdbcBaseTest {
             UUID.randomUUID().toString(),
             "12345",
             attr.getName(),
-            System.currentTimeMillis(),
+            tms,
             "value".getBytes());
     assertTrue(writeElement(accessor, element).get());
 
@@ -90,6 +91,7 @@ public class JdbcOnlineAttributeReaderTest extends JdbcBaseTest {
     assertTrue(keyValue.isPresent());
     log.debug("KV: {}", keyValue.get());
     assertEquals(attr, keyValue.get().getAttrDescriptor());
+    assertEquals(tms, keyValue.get().getStamp());
     assertEquals("value", new String(Objects.requireNonNull(keyValue.get().getValueBytes())));
   }
 

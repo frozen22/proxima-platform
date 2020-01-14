@@ -24,12 +24,15 @@ import java.net.URI;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.Instant;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class HsqldbSqlStatementFactory implements SqlStatementFactory {
   private String tableName = "DUMMYTABLE";
   private String primaryKey = "id";
+  private String timestampCol = "updatedAt";
 
   public void setup(EntityDescriptor entity, URI uri, HikariDataSource dataSource)
       throws SQLException {
@@ -43,8 +46,8 @@ public class HsqldbSqlStatementFactory implements SqlStatementFactory {
             .getConnection()
             .prepareStatement(
                 String.format(
-                    "SELECT %s,%s FROM %s WHERE id  = ? LIMIT 1",
-                    desc.getName(), primaryKey, tableName));
+                    "SELECT %s,%s,%s FROM %s WHERE id  = ? LIMIT 1",
+                    desc.getName(), primaryKey, timestampCol, tableName));
     statement.setString(1, value.toString()); // @TODO
     return statement;
   }
@@ -74,21 +77,26 @@ public class HsqldbSqlStatementFactory implements SqlStatementFactory {
       statement =
           connection.prepareStatement(
               String.format(
-                  "MERGE INTO %s AS T USING (VALUES(?,?)) as vals(%s, %s) ON T.%s = vals.%s "
-                      + "WHEN MATCHED THEN UPDATE SET T.%s = vals.%s "
-                      + "WHEN NOT MATCHED THEN INSERT VALUES vals.%s, vals.%s",
+                  "MERGE INTO %s AS T USING (VALUES(?,?,?)) as vals(%s, %s, %s) ON T.%s = vals.%s "
+                      + "WHEN MATCHED THEN UPDATE SET T.%s = vals.%s, T.%s = vals.%s "
+                      + "WHEN NOT MATCHED THEN INSERT VALUES vals.%s, vals.%s, vals.%s",
                   tableName,
                   primaryKey,
                   element.getAttribute(),
+                  timestampCol,
                   primaryKey,
                   primaryKey,
                   element.getAttribute(),
                   element.getAttribute(),
+                  timestampCol,
+                  timestampCol,
                   primaryKey,
-                  element.getAttribute()));
+                  element.getAttribute(),
+                  timestampCol));
 
       statement.setString(1, element.getKey());
       statement.setString(2, new String(element.getValue()));
+      statement.setTimestamp(3, Timestamp.from(Instant.ofEpochMilli(element.getStamp())));
       return statement;
     }
     return null;
