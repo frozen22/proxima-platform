@@ -146,6 +146,21 @@ public class PubSubReaderTest {
     timestampSupplier.set(System.currentTimeMillis());
   }
 
+  @Test
+  public void testCreateWithSubscriptionNameSuffix() throws URISyntaxException {
+    PubSubAccessor accessorWithSuffix =
+        new PubSubAccessor(
+            storage,
+            entity,
+            new URI("gps://my-project/topic"),
+            Collections.singletonMap(PubSubAccessor.CFG_SUBSCRIPTION_NAME_SUFFIX, "my-suffix"));
+    assertEquals("my-suffix", accessorWithSuffix.getSubscriptionNameSuffix());
+    assertTrue(accessorWithSuffix.getCommitLogReader(context).isPresent());
+    PubSubReader reader = (PubSubReader) accessorWithSuffix.getCommitLogReader(context).get();
+    assertTrue(reader.asConsumerName(null).startsWith("unnamed-consumer-my-suffix-"));
+    assertEquals(reader.asConsumerName("test"), "test-my-suffix");
+  }
+
   @Test(timeout = 10000)
   public void testObserve() throws InterruptedException {
     long now = System.currentTimeMillis();

@@ -27,6 +27,7 @@ import cz.o2.proxima.storage.UriUtil;
 import java.net.URI;
 import java.util.Map;
 import java.util.Optional;
+import javax.annotation.Nullable;
 import lombok.Getter;
 
 /** A {@link DataAccessor} for Google PubSub. */
@@ -35,6 +36,7 @@ class PubSubAccessor extends AbstractStorage implements DataAccessor {
   public static final String CFG_MAX_ACK_DEADLINE = "pubsub.deadline-max-ms";
   public static final String CFG_SUBSCRIPTION_AUTOCREATE = "pubsub.subscription.auto-create";
   public static final String CFG_SUBSCRIPTION_ACK_DEADLINE = "pubsub.subscription.ack-deadline";
+  public static final String CFG_SUBSCRIPTION_NAME_SUFFIX = "pubsub.subscription.name.suffix";
   public static final String CFG_WATERMARK_ESTIMATE_DURATION = "pubsub.watermark.estimate-duration";
   public static final String CFG_ALLOWED_TIMESTAMP_SKEW = "pubsub.watermark.allowed-timestamp-skew";
 
@@ -51,6 +53,8 @@ class PubSubAccessor extends AbstractStorage implements DataAccessor {
   @Getter private final long watermarkEstimateDuration;
 
   @Getter private final long allowedTimestampSkew;
+
+  @Getter @Nullable private final String subscriptionNameSuffix;
 
   PubSubAccessor(PubSubStorage storage, EntityDescriptor entity, URI uri, Map<String, Object> cfg) {
 
@@ -85,6 +89,11 @@ class PubSubAccessor extends AbstractStorage implements DataAccessor {
             .map(Object::toString)
             .map(Long::valueOf)
             .orElse(storage.getDefaultAllowedTimestampSkew());
+
+    subscriptionNameSuffix =
+        Optional.ofNullable(cfg.get(CFG_SUBSCRIPTION_NAME_SUFFIX))
+            .map(Object::toString)
+            .orElse(null);
 
     Preconditions.checkArgument(!Strings.isNullOrEmpty(project), "Authority cannot be empty");
     Preconditions.checkArgument(!Strings.isNullOrEmpty(topic), "Path has to represent topic");

@@ -58,6 +58,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -159,6 +160,7 @@ class PubSubReader extends AbstractStorage implements CommitLogReader {
   private final boolean subscriptionAutoCreate;
   private final long watermarkEstimateDuration;
   private final long allowedTimestampSkew;
+  private final String subscriptionNameSuffix;
 
   private transient ExecutorService executor;
 
@@ -172,12 +174,13 @@ class PubSubReader extends AbstractStorage implements CommitLogReader {
     this.subscriptionAutoCreate = accessor.isSubscriptionAutoCreate();
     this.watermarkEstimateDuration = accessor.getWatermarkEstimateDuration();
     this.allowedTimestampSkew = accessor.getAllowedTimestampSkew();
+    this.subscriptionNameSuffix = accessor.getSubscriptionNameSuffix();
   }
 
   @Override
   public List<Partition> getPartitions() {
     // pubsub has only single (splittable) partition from the client perspective
-    return Arrays.asList(new PubSubPartition(asConsumerName(null)));
+    return Collections.singletonList(new PubSubPartition(asConsumerName(null)));
   }
 
   @Override
@@ -491,8 +494,17 @@ class PubSubReader extends AbstractStorage implements CommitLogReader {
     throw new UnsupportedOperationException("PubSub can observe only current data.");
   }
 
-  private String asConsumerName(String name) {
-    return name != null ? name : "unnamed-consumer-" + UUID.randomUUID().toString();
+  @VisibleForTesting
+  String asConsumerName(String name) {
+    String suffixPart = "";
+    if (subscriptionNameSuffix != null) {
+      suffixPart = String.format("-%s", subscriptionNameSuffix);
+    }
+    if (name != null) {
+      return String.format("%s%s", name, suffixPart);
+    } else {
+      return String.format("unnamed-consumer%s-%s", suffixPart, UUID.randomUUID().toString());
+    }
   }
 
   private ObserveHandle consume(
