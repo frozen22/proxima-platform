@@ -25,8 +25,8 @@ if [ "$(is_datadriven_repo ${GITHUB_REPOSITORY})" == "1" ]; then
 
    mvn install -Pallow-snapshots -DskipTests && mvn site -Psite
 
-   echo ${GOOGLE_CREDENTIALS} > /tmp/google-credentials.json
-   gcloud auth activate-service-account --key-file /tmp/google-credentials.json
+   export GOOGLE_APPLICATION_CREDENTIALS=/tmp/google-credentials.json
+   echo ${GOOGLE_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
 
    gsutil -m cp -r target/site/apidocs gs://${PROXIMA_DOC_GC_STORAGE}/${VERSION}/
 fi
