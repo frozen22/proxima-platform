@@ -35,7 +35,7 @@
 
   <properties>
     <apache.beam.groupId>org.apache.beam</apache.beam.groupId>
-    <apache.beam.version>2.19.0-SNAPSHOT</apache.beam.version>
+    <apache.beam.version>2.20.0-SNAPSHOT</apache.beam.version>
     <apache.beam.groupId.raw>org.apache.beam</apache.beam.groupId.raw>
     <apache.beam.version.raw>${apache.beam.version}</apache.beam.version.raw>
   </properties>
@@ -98,9 +98,6 @@
     </profile>
     <profile>
       <id>useVendoredBeam</id>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-      </activation>
       <properties>
         <apache.beam.groupId>cz.o2.proxima.beam</apache.beam.groupId>
         <apache.beam.version>0.3-1d562f</apache.beam.version>
@@ -115,6 +112,9 @@
     </profile>
     <profile>
       <id>useNativeBeam</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
       <modules>
         <module>core</module>
         <module>core-testing</module>
